@@ -443,6 +443,97 @@
       flex-shrink: 0;
     }
 
+    /* Sidebar Tab Items (dynamic) */
+    .sidebar-tab-item {
+      display: flex;
+      align-items: center;
+      gap: var(--space-4);
+      padding: 10px;
+      background: transparent;
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      transition: background 0.1s ease;
+    }
+
+    .sidebar-tab-item:hover {
+      background: var(--color-bg-hover);
+    }
+
+    .sidebar-tab-item:active {
+      background: var(--color-bg-active);
+    }
+
+    .sidebar-tab-item.active {
+      background: var(--color-bg-active);
+    }
+
+    .sidebar-tab-item .favicon {
+      width: var(--favicon-size-sm);
+      height: var(--favicon-size-sm);
+      border-radius: var(--favicon-radius-sm);
+      background: var(--color-bg-surface);
+      border: var(--stroke-width-default) solid var(--color-border-default);
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+
+    .sidebar-tab-item .tab-item-title {
+      flex: 1;
+      font-size: var(--font-size-sm);
+      line-height: var(--line-height-sm);
+      color: var(--color-fg-primary-600);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .sidebar-tab-item .tab-close-btn {
+      width: 20px;
+      height: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      background: transparent;
+      border: none;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      opacity: 0;
+      transition: opacity 0.1s ease;
+    }
+
+    .sidebar-tab-item:hover .tab-close-btn {
+      opacity: 1;
+    }
+
+    .sidebar-tab-item .tab-close-btn:hover {
+      background: var(--color-bg-active);
+    }
+
+    .sidebar-tab-item .tab-close-btn img {
+      width: 12px;
+      height: 12px;
+    }
+
+    .sidebar.collapsed {
+      width: 0;
+      padding: 0;
+      overflow: hidden;
+      border-right: none;
+    }
+
+    /* Loading state for toolbar tab */
+    .toolbar-tab.loading .tab-title::after {
+      content: '...';
+      animation: loading-dots 1s infinite;
+    }
+
+    @keyframes loading-dots {
+      0%, 20% { content: '.'; }
+      40% { content: '..'; }
+      60%, 100% { content: '...'; }
+    }
+
     /* ═══════════════════════════════════════════════════════════════════════════
        MAIN CONTENT (New Tab Page)
        ═══════════════════════════════════════════════════════════════════════════ */
