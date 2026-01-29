@@ -1,0 +1,1257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Browser</title>
+  <style>
+    /* ═══════════════════════════════════════════════════════════════════════════
+       DESIGN TOKENS (from Figma - 1:1 parity)
+       ═══════════════════════════════════════════════════════════════════════════ */
+    :root {
+      /* Colors - Neutrals */
+      --color-neutral-white: #ffffff;
+      --color-neutral-100: #fafafa;
+      --color-neutral-150: #f5f5f5;
+      --color-neutral-200: #f0f0f0;
+      --color-neutral-250: #e0e0e0;
+      --color-neutral-400: #8f8f8f;
+      --color-neutral-stone: #6d7176;
+
+      /* Colors - Foreground */
+      --color-fg-primary: #272320;
+      --color-fg-primary-600: #5a544f;
+      --color-fg-secondary: #6d7176;
+      --color-fg-tertiary: #8f8f8f;
+      --color-fg-on-brand: #e2ddd9;
+      --color-fg-icon: #272320;
+
+      /* Colors - Background */
+      --color-bg-surface: #ffffff;
+      --color-bg-brand: #272320;
+      --color-bg-hover: #fafafa;
+      --color-bg-active: #f0f0f0;
+
+      /* Colors - Border */
+      --color-border-default: #f0f0f0;
+      --color-border-subtle: #f5f5f5;
+      --color-border-alpha-5: rgba(0, 0, 0, 0.05);
+      --color-border-alpha-10: rgba(0, 0, 0, 0.1);
+
+      /* Typography */
+      --font-family: 'Segoe UI Variable', 'Segoe UI', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+      --font-size-sm: 14px;
+      --font-size-base: 16px;
+      --font-size-md: 18px;
+      --line-height-sm: 20px;
+      --line-height-base: 26px;
+      --line-height-md: 26px;
+      --font-weight-regular: 450;
+      --font-weight-medium: 550;
+
+      /* Spacing */
+      --space-2: 4px;
+      --space-4: 8px;
+      --space-6: 12px;
+      --space-8: 16px;
+      --space-12: 24px;
+      --space-16: 32px;
+      --space-24: 64px;
+
+      /* Stroke */
+      --stroke-width-default: 1px;
+
+      /* Shadows */
+      --shadow-ctrl-brand: 0px 1px 3px 0px rgba(0, 0, 0, 0.15);
+
+      /* Corner Radius */
+      --radius-sm: 6px;
+      --radius-md: 12px;
+      --radius-lg: 16px;
+      --radius-xl: 20px;
+      --radius-2xl: 24px;
+      --radius-3xl: 32px;
+
+      /* Button Tokens - Medium */
+      --btn-md-height: 40px;
+      --btn-md-min-width: 40px;
+      --btn-md-radius: 12px;
+      --btn-md-icon-size: 24px;
+
+      /* Button Tokens - Small */
+      --btn-sm-height: 36px;
+      --btn-sm-min-width: 36px;
+      --btn-sm-radius: 12px;
+      --btn-sm-icon-size: 24px;
+
+      /* Button Tokens - Large */
+      --btn-lg-height: 48px;
+      --btn-lg-min-width: 48px;
+      --btn-lg-radius: 20px;
+      --btn-lg-icon-size: 24px;
+
+      /* Favicon */
+      --favicon-size-sm: 20px;
+      --favicon-size-lg: 48px;
+      --favicon-radius-sm: 6px;
+      --favicon-radius-lg: 12px;
+
+      /* Sidebar */
+      --sidebar-width: 216px;
+      --sidebar-tab-padding: 8px;
+
+      /* Content */
+      --content-max-width: 864px; /* 816px content + 48px for side margins */
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════════════
+       RESET & BASE
+       ═══════════════════════════════════════════════════════════════════════════ */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body {
+      height: 100%;
+      font-family: var(--font-family);
+      font-weight: var(--font-weight-regular);
+      color: var(--color-fg-primary);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════════════
+       BROWSER SHELL
+       ═══════════════════════════════════════════════════════════════════════════ */
+    .browser-shell {
+      display: flex;
+      padding: var(--space-2);
+      height: 100%;
+      background: var(--color-neutral-150);
+      border-radius: var(--radius-2xl);
+    }
+
+    .browser-main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background: var(--color-bg-surface);
+      border: var(--stroke-width-default) solid var(--color-border-default);
+      border-radius: var(--radius-xl);
+      overflow: hidden;
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════════════
+       TOOLBAR
+       ═══════════════════════════════════════════════════════════════════════════ */
+    .toolbar {
+      display: flex;
+      align-items: center;
+      gap: var(--space-4);
+      padding: var(--space-4);
+      flex-shrink: 0;
+      border-bottom: var(--stroke-width-default) solid var(--color-border-default);
+    }
+
+    .toolbar-tab {
+      display: flex;
+      align-items: center;
+      gap: var(--space-4);
+      padding: 10px;
+      background: var(--color-bg-surface);
+      border-radius: var(--radius-md);
+      flex: 1;
+      min-width: 0;
+    }
+
+    .toolbar-left {
+      display: flex;
+      align-items: center;
+      gap: var(--space-4);
+      width: 200px;
+      flex-shrink: 0;
+    }
+
+    .toolbar-tab .favicon {
+      width: var(--favicon-size-sm);
+      height: var(--favicon-size-sm);
+      border-radius: var(--favicon-radius-sm);
+      background: var(--color-bg-surface);
+      border: var(--stroke-width-default) solid var(--color-border-default);
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+
+    .toolbar-tab .tab-title {
+      font-size: var(--font-size-sm);
+      line-height: var(--line-height-sm);
+      color: var(--color-fg-primary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* Search Bar */
+    .search-bar {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      background: var(--color-neutral-100);
+      border: var(--stroke-width-default) solid var(--color-border-alpha-5);
+      border-radius: var(--radius-md);
+    }
+
+    .search-bar .search-icon {
+      width: 20px;
+      height: 20px;
+      flex-shrink: 0;
+    }
+
+    .search-bar .search-icon img {
+      width: 100%;
+      height: 100%;
+    }
+
+    .search-bar .search-text {
+      flex: 1;
+      font-size: var(--font-size-sm);
+      line-height: var(--line-height-sm);
+      color: var(--color-neutral-400);
+      position: relative;
+    }
+
+    .search-bar .search-input {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      border: none;
+      background: transparent;
+      font-size: inherit;
+      line-height: inherit;
+      color: var(--color-fg);
+      outline: none;
+      padding: 0;
+      margin: 0;
+      font-family: inherit;
+      opacity: 0;
+    }
+
+    .search-bar .search-input:focus {
+      opacity: 1;
+    }
+
+    .search-bar .search-input:focus + .search-placeholder {
+      display: none;
+    }
+
+    .search-bar .search-placeholder {
+      pointer-events: none;
+    }
+
+    .search-bar .star-icon {
+      width: 20px;
+      height: 20px;
+      flex-shrink: 0;
+      color: var(--color-neutral-400);
+    }
+
+    .search-bar .star-icon img {
+      width: 100%;
+      height: 100%;
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════════════
+       ICON BUTTON
+       ═══════════════════════════════════════════════════════════════════════════ */
+    .icon-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border: var(--stroke-width-default) solid transparent;
+      background: transparent;
+      cursor: pointer;
+      flex-shrink: 0;
+      color: var(--color-fg-icon);
+    }
+
+    .icon-btn:hover {
+      background: var(--color-bg-hover);
+    }
+
+    .icon-btn:active {
+      background: var(--color-bg-active);
+    }
+
+    .icon-btn.selected {
+      background: var(--color-bg-active);
+    }
+
+    .icon-btn:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 2px var(--color-bg-surface), 0 0 0 4px var(--color-fg-primary);
+    }
+
+    .icon-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .icon-btn:disabled:hover {
+      background: transparent;
+    }
+
+    .icon-btn-md {
+      width: var(--btn-md-height);
+      height: var(--btn-md-height);
+      border-radius: var(--btn-md-radius);
+    }
+
+    .icon-btn-sm {
+      width: var(--btn-sm-height);
+      height: var(--btn-sm-height);
+      border-radius: var(--btn-sm-radius);
+    }
+
+    .icon-btn-lg {
+      width: var(--btn-lg-height);
+      height: var(--btn-lg-height);
+      border-radius: var(--btn-lg-radius);
+    }
+
+    .icon-btn .icon {
+      width: var(--btn-md-icon-size);
+      height: var(--btn-md-icon-size);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .icon-btn .icon svg,
+    .icon-btn .icon img {
+      width: 100%;
+      height: 100%;
+    }
+
+    .icon-btn .icon svg {
+      fill: currentColor;
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════════════
+       CONTENT AREA (Sidebar + Main)
+       ═══════════════════════════════════════════════════════════════════════════ */
+    .content-area {
+      flex: 1;
+      display: flex;
+      min-height: 0;
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════════════
+       SIDEBAR (Tabs List)
+       ═══════════════════════════════════════════════════════════════════════════ */
+    .sidebar {
+      width: var(--sidebar-width);
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-4);
+      padding: var(--space-4);
+      flex-shrink: 0;
+      overflow-y: auto;
+      border-right: var(--stroke-width-default) solid var(--color-border-default);
+    }
+
+    .sidebar.hidden {
+      display: none;
+    }
+
+    .sidebar-tab {
+      display: flex;
+      align-items: center;
+      gap: var(--space-4);
+      padding: var(--sidebar-tab-padding);
+      background: transparent;
+      border-radius: var(--radius-md);
+      cursor: pointer;
+    }
+
+    .sidebar-tab:hover {
+      background: var(--color-bg-hover);
+    }
+
+    .sidebar-tab:active {
+      background: var(--color-bg-active);
+    }
+
+    .sidebar-tab.active {
+      background: var(--color-bg-hover);
+    }
+
+    .sidebar-tab:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 2px var(--color-bg-surface), 0 0 0 4px var(--color-fg-primary);
+    }
+
+    .sidebar-tab .favicon {
+      width: var(--favicon-size-sm);
+      height: var(--favicon-size-sm);
+      border-radius: var(--favicon-radius-sm);
+      background: var(--color-bg-surface);
+      border: var(--stroke-width-default) solid var(--color-border-default);
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+
+    .sidebar-tab .tab-title {
+      flex: 1;
+      font-size: var(--font-size-sm);
+      line-height: var(--line-height-sm);
+      color: var(--color-fg-primary-600);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .sidebar-tab .close-btn {
+      width: 16px;
+      height: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      color: var(--color-neutral-400);
+      cursor: pointer;
+    }
+
+    .sidebar-tab .close-btn svg,
+    .sidebar-tab .close-btn img {
+      width: 16px;
+      height: 16px;
+    }
+
+    .sidebar-tab .close-btn svg {
+      fill: currentColor;
+    }
+
+    .sidebar-tab .pin-icon {
+      font-size: var(--font-size-sm);
+      line-height: var(--line-height-sm);
+      color: var(--color-fg-primary);
+      flex-shrink: 0;
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════════════
+       MAIN CONTENT (New Tab Page)
+       ═══════════════════════════════════════════════════════════════════════════ */
+    .main-content {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .scroll-container {
+      flex: 1;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .chat-overlay-container {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      pointer-events: none;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      align-items: center;
+      overflow: hidden;
+    }
+
+    .new-tab-page {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding-bottom: 200px; /* Space for chat + fade + extra scroll room */
+    }
+
+    .new-tab-page.hidden {
+      display: none;
+    }
+
+    /* Webview iframe for web content */
+    .webview-container {
+      width: 100%;
+      height: 100%;
+      display: none;
+    }
+
+    .webview-container.active {
+      display: block;
+    }
+
+    .webview-frame {
+      width: 100%;
+      height: 100%;
+      border: none;
+      background: var(--color-bg-surface);
+    }
+
+    .ntp-sections {
+      width: 100%;
+      max-width: var(--content-max-width);
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-16);
+      padding: var(--space-24) var(--space-12) 0;
+    }
+
+    /* Section Header */
+    .section {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-6);
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      padding: var(--space-4) var(--space-2);
+    }
+
+    .section-title {
+      font-size: var(--font-size-md);
+      line-height: var(--line-height-md);
+      font-weight: var(--font-weight-medium);
+      color: var(--color-fg-primary);
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════════════
+       FAVORITES ROW
+       ═══════════════════════════════════════════════════════════════════════════ */
+    .favorites-row {
+      display: flex;
+      align-items: center;
+      gap: var(--space-8);
+      flex-wrap: wrap;
+    }
+
+    .favorite-icon {
+      width: var(--favicon-size-lg);
+      height: var(--favicon-size-lg);
+      border-radius: var(--favicon-radius-lg);
+      background: var(--color-bg-surface);
+      border: var(--stroke-width-default) solid var(--color-border-default);
+      overflow: hidden;
+      flex-shrink: 0;
+      cursor: pointer;
+    }
+
+    .favorite-icon:hover {
+      border-color: var(--color-neutral-250);
+    }
+
+    .favorite-icon:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 2px var(--color-bg-surface), 0 0 0 4px var(--color-fg-primary);
+    }
+
+    .favorite-icon img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════════════
+       RECENTS ROW (Thumbnails)
+       ═══════════════════════════════════════════════════════════════════════════ */
+    .recents-row {
+      display: flex;
+      gap: var(--space-8);
+    }
+
+    .thumbnail-card {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-4);
+      cursor: pointer;
+    }
+
+    .thumbnail-preview {
+      aspect-ratio: 400 / 225;
+      background: var(--color-border-default);
+      border: var(--stroke-width-default) solid var(--color-border-default);
+      border-radius: var(--radius-lg);
+    }
+
+    .thumbnail-info {
+      display: flex;
+      align-items: center;
+      gap: var(--space-4);
+      padding: 2px;
+    }
+
+    .thumbnail-info .favicon {
+      width: var(--favicon-size-sm);
+      height: var(--favicon-size-sm);
+      border-radius: var(--favicon-radius-sm);
+      background: var(--color-bg-surface);
+      border: var(--stroke-width-default) solid var(--color-border-subtle);
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+
+    .thumbnail-info .title {
+      font-size: var(--font-size-sm);
+      line-height: var(--line-height-sm);
+      color: var(--color-fg-primary);
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════════════
+       CHATS ROW (Cards)
+       ═══════════════════════════════════════════════════════════════════════════ */
+    .chats-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: var(--space-8);
+    }
+
+    .chat-card {
+      aspect-ratio: 1;
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-8);
+      padding: var(--space-12);
+      background: var(--color-bg-surface);
+      border: var(--stroke-width-default) solid var(--color-border-default);
+      border-radius: var(--radius-3xl);
+      overflow: hidden;
+      cursor: pointer;
+    }
+
+    .chat-card:hover {
+      border-color: var(--color-neutral-250);
+    }
+
+    .chat-card:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 2px var(--color-bg-surface), 0 0 0 4px var(--color-fg-primary);
+    }
+
+    .chat-card-header {
+      display: flex;
+      align-items: center;
+      gap: var(--space-4);
+      flex-shrink: 0;
+    }
+
+    .chat-card-header .favicon {
+      width: var(--favicon-size-sm);
+      height: var(--favicon-size-sm);
+      border-radius: var(--favicon-radius-sm);
+      background: var(--color-bg-surface);
+      border: var(--stroke-width-default) solid var(--color-border-default);
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+
+    .chat-card-header .name {
+      font-size: var(--font-size-sm);
+      line-height: var(--line-height-sm);
+      color: var(--color-fg-primary);
+    }
+
+    .chat-card-description {
+      font-size: var(--font-size-base);
+      line-height: var(--line-height-base);
+      color: var(--color-fg-primary);
+      flex: 1;
+      min-height: 0;
+      overflow: hidden;
+      display: flex;
+      align-items: flex-end;
+    }
+    
+    .chat-card-description span {
+      display: -webkit-box;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 10;
+      overflow: hidden;
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════════════
+       WIDGETS ROW
+       ═══════════════════════════════════════════════════════════════════════════ */
+    .widgets-row {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: var(--space-8);
+    }
+
+    .widget-card {
+      height: 300px;
+      display: flex;
+      flex-direction: column;
+      padding: var(--space-12);
+      background: var(--color-bg-surface);
+      border: var(--stroke-width-default) solid var(--color-border-default);
+      border-radius: var(--radius-3xl);
+      overflow: hidden;
+      cursor: pointer;
+    }
+
+    .widget-card:hover {
+      border-color: var(--color-neutral-250);
+    }
+
+    .widget-card:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 2px var(--color-bg-surface), 0 0 0 4px var(--color-fg-primary);
+    }
+
+    .widget-card-header {
+      display: flex;
+      align-items: center;
+      gap: var(--space-4);
+    }
+
+    .widget-card-header .favicon {
+      width: var(--favicon-size-sm);
+      height: var(--favicon-size-sm);
+      border-radius: var(--favicon-radius-sm);
+      background: var(--color-bg-surface);
+      border: var(--stroke-width-default) solid var(--color-border-default);
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+
+    .widget-card-header .name {
+      font-size: var(--font-size-sm);
+      line-height: var(--line-height-sm);
+      color: var(--color-fg-primary);
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════════════
+       CHAT INPUT
+       ═══════════════════════════════════════════════════════════════════════════ */
+    .chat-input-wrapper {
+      width: 100%;
+      max-width: var(--content-max-width);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 0 var(--space-12);
+    }
+
+    .chat-input-fade {
+      width: 100%;
+      height: 80px;
+      background: linear-gradient(to bottom, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 1) 50%);
+      pointer-events: none;
+    }
+
+    .chat-input-bottom {
+      width: 100%;
+      background: var(--color-bg-surface);
+      display: flex;
+      justify-content: center;
+      pointer-events: auto;
+    }
+
+    .chat-input-container {
+      width: 100%;
+      max-width: 600px;
+      padding: var(--space-6);
+      background: var(--color-bg-surface);
+      border: var(--stroke-width-default) solid var(--color-border-alpha-10);
+      border-radius: var(--radius-2xl);
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-6);
+      box-shadow: 0px 8px 24px 0px rgba(0, 0, 0, 0.1);
+      margin-bottom: var(--space-12);
+      pointer-events: auto;
+    }
+
+    .chat-input-row {
+      display: flex;
+      align-items: center;
+      padding: var(--space-2) var(--space-4);
+      position: relative;
+    }
+
+    .chat-input-placeholder {
+      font-size: var(--font-size-base);
+      line-height: var(--line-height-base);
+      color: var(--color-fg-secondary);
+      pointer-events: none;
+    }
+
+    .chat-text-input {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      width: 100%;
+      height: 100%;
+      border: none;
+      background: transparent;
+      font-size: var(--font-size-base);
+      line-height: var(--line-height-base);
+      color: var(--color-fg-primary);
+      padding: var(--space-2) var(--space-4);
+      outline: none;
+      font-family: inherit;
+    }
+
+    .chat-text-input:not(:placeholder-shown) + .chat-input-placeholder {
+      display: none;
+    }
+
+    .chat-input-actions {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .chat-input-actions-right {
+      display: flex;
+      align-items: center;
+      gap: var(--space-4);
+    }
+
+    .model-selector {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      padding: var(--space-4) var(--space-4);
+      padding-top: 8px;
+      padding-bottom: 8px;
+      border-radius: var(--radius-md);
+      cursor: pointer;
+    }
+
+    .model-selector:hover {
+      background: var(--color-bg-hover);
+    }
+
+    .model-selector:active {
+      background: var(--color-bg-active);
+    }
+
+    .model-selector:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 2px var(--color-bg-surface), 0 0 0 4px var(--color-fg-primary);
+    }
+
+    .model-selector .favicon {
+      width: var(--favicon-size-sm);
+      height: var(--favicon-size-sm);
+      border-radius: var(--favicon-radius-sm);
+      background: var(--color-bg-surface);
+      border: var(--stroke-width-default) solid var(--color-border-default);
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+
+    .model-selector .model-name {
+      font-size: var(--font-size-sm);
+      line-height: var(--line-height-sm);
+      color: var(--color-fg-primary);
+    }
+
+    .model-selector .chevron {
+      width: 12px;
+      height: 12px;
+      color: var(--color-fg-primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .model-selector .chevron svg {
+      width: 8px;
+      height: 5px;
+      fill: currentColor;
+    }
+
+    .send-btn {
+      width: var(--btn-sm-height);
+      height: var(--btn-sm-height);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--color-bg-brand);
+      border: var(--stroke-width-default) solid transparent;
+      border-radius: var(--btn-sm-radius);
+      cursor: pointer;
+      box-shadow: var(--shadow-ctrl-brand);
+    }
+
+    .send-btn:hover {
+      background: #3a3632;
+    }
+
+    .send-btn:active {
+      background: #1a1816;
+    }
+
+    .send-btn:focus-visible {
+      outline: none;
+      box-shadow: var(--shadow-ctrl-brand), 0 0 0 2px var(--color-bg-surface), 0 0 0 4px var(--color-fg-primary);
+    }
+
+    .send-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .send-btn:disabled:hover {
+      background: var(--color-bg-brand);
+    }
+
+    .send-btn .icon {
+      width: var(--btn-sm-icon-size);
+      height: var(--btn-sm-icon-size);
+      color: var(--color-fg-on-brand);
+    }
+
+    .send-btn .icon svg,
+    .send-btn .icon img {
+      width: 100%;
+      height: 100%;
+      /* Invert dark icon to light for brand button - approximates #e2ddd9 */
+      filter: invert(92%) sepia(5%) saturate(200%) hue-rotate(340deg) brightness(95%) contrast(90%);
+    }
+
+    .send-btn .icon svg {
+      fill: currentColor;
+      filter: none;
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════════════
+       FAVICON BRAND IMAGES
+       ═══════════════════════════════════════════════════════════════════════════ */
+    .favicon-airbnb { background: #fff url('assets/Airbnb.png') center/cover no-repeat; }
+    .favicon-amazon { background: #fff url('assets/Amazon.png') center/cover no-repeat; }
+    .favicon-apnews { background: #fff url('assets/AP%20News.png') center/cover no-repeat; }
+    .favicon-bleacherreport { background: #fff url('assets/Bleacher%20Report.png') center/cover no-repeat; }
+    .favicon-chatgpt { background: #fff url('assets/Chat%20GPT.png') center/cover no-repeat; }
+    .favicon-cnn { background: #fff url('assets/CNN.png') center/cover no-repeat; }
+    .favicon-claude { background: #fff url('assets/Claude.png') center/cover no-repeat; }
+    .favicon-copilot { background: #fff url('assets/Copilot.png') center/cover no-repeat; }
+    .favicon-dribbble { background: #fff url('assets/Dribbble.png') center/cover no-repeat; }
+    .favicon-espn { background: #fff url('assets/ESPN.png') center/cover no-repeat; }
+    .favicon-facebook { background: #fff url('assets/Facebook.png') center/cover no-repeat; }
+    .favicon-figma { background: #fff url('assets/Figma.png') center/cover no-repeat; }
+    .favicon-forbes { background: #fff url('assets/Forbes.png') center/cover no-repeat; }
+    .favicon-gemini { background: #fff url('assets/Gemini.png') center/cover no-repeat; }
+    .favicon-google { background: #fff url('assets/Google.png') center/cover no-repeat; }
+    .favicon-honda { background: #fff url('assets/Honda.png') center/cover no-repeat; }
+    .favicon-hypebeast { background: #fff url('assets/Hypebeast.png') center/cover no-repeat; }
+    .favicon-instagram { background: #fff url('assets/Instagram.png') center/cover no-repeat; }
+    .favicon-linkedin { background: #fff url('assets/Linkedin.png') center/cover no-repeat; }
+    .favicon-medium { background: #fff url('assets/Medium.png') center/cover no-repeat; }
+    .favicon-midjourney { background: #fff url('assets/Midjourney.png') center/cover no-repeat; }
+    .favicon-nbc { background: #fff url('assets/NBC.png') center/cover no-repeat; }
+    .favicon-netflix { background: #fff url('assets/Netflix.png') center/cover no-repeat; }
+    .favicon-nike { background: #fff url('assets/Nike.png') center/cover no-repeat; }
+    .favicon-notion { background: #fff url('assets/Notion.png') center/cover no-repeat; }
+    .favicon-npr { background: #fff url('assets/NPR.png') center/cover no-repeat; }
+    .favicon-nytimes { background: #fff url('assets/The%20New%20York%20Times.png') center/cover no-repeat; }
+    .favicon-newyorker { background: #fff url('assets/The%20New%20Yorker.png') center/cover no-repeat; }
+    .favicon-perplexity { background: #fff url('assets/Perplexity.png') center/cover no-repeat; }
+    .favicon-pinterest { background: #fff url('assets/Pinterest.png') center/cover no-repeat; }
+    .favicon-reddit { background: #fff url('assets/Reddit.png') center/cover no-repeat; }
+    .favicon-robinhood { background: #fff url('assets/Robinhood.png') center/cover no-repeat; }
+    .favicon-seattletimes { background: #fff url('assets/Seattle%20Times.png') center/cover no-repeat; }
+    .favicon-spotify { background: #fff url('assets/Spotify.png') center/cover no-repeat; }
+    .favicon-target { background: #fff url('assets/Target.png') center/cover no-repeat; }
+    .favicon-time { background: #fff url('assets/Time.png') center/cover no-repeat; }
+    .favicon-twitter { background: #fff url('assets/Twitter.png') center/cover no-repeat; }
+    .favicon-vox { background: #fff url('assets/Vox.png') center/cover no-repeat; }
+    .favicon-wikipedia { background: #fff url('assets/Wikipedia.png') center/cover no-repeat; }
+    .favicon-x { background: #fff url('assets/X.png') center/cover no-repeat; }
+    .favicon-yahoo { background: #fff url('assets/Yahoo.png') center/cover no-repeat; }
+    .favicon-yelp { background: #fff url('assets/Yelp.png') center/cover no-repeat; }
+    .favicon-youtube { background: #fff url('assets/YouTube.png') center/cover no-repeat; }
+
+    /* ═══════════════════════════════════════════════════════════════════════════
+       ICONS (SVG inline)
+       ═══════════════════════════════════════════════════════════════════════════ */
+    .icon svg {
+      fill: currentColor;
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════════════
+       RESPONSIVE BREAKPOINTS
+       ═══════════════════════════════════════════════════════════════════════════ */
+
+    /* Medium screens - 3 chat cards, 2 widgets */
+    @media (max-width: 900px) {
+      .chats-row {
+        grid-template-columns: repeat(3, 1fr);
+      }
+      
+      .chats-row .chat-card:nth-child(4) {
+        display: none;
+      }
+    }
+    
+    /* Small screens - 2 chat cards, 1 widget */
+    @media (max-width: 700px) {
+      .chats-row {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      
+      .chats-row .chat-card:nth-child(3),
+      .chats-row .chat-card:nth-child(4) {
+        display: none;
+      }
+      
+      .widgets-row {
+        grid-template-columns: 1fr;
+      }
+      
+      .widgets-row .widget-card:nth-child(2) {
+        display: none;
+      }
+    }
+
+    /* Extra small screens - 1 chat card */
+    @media (max-width: 500px) {
+      .chats-row {
+        grid-template-columns: 1fr;
+      }
+      
+      .chats-row .chat-card:nth-child(2),
+      .chats-row .chat-card:nth-child(3),
+      .chats-row .chat-card:nth-child(4) {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="browser-shell">
+    <div class="browser-main">
+      <!-- Toolbar -->
+      <div class="toolbar">
+        <!-- Left Area: Tab + Panel Toggle -->
+        <div class="toolbar-left">
+          <div class="toolbar-tab">
+            <div class="favicon favicon-wikipedia"></div>
+            <span class="tab-title">New tab</span>
+          </div>
+          <button class="icon-btn icon-btn-md" title="Panel">
+            <span class="icon">
+              <img src="icons/Panel.svg" alt="Panel">
+            </span>
+          </button>
+        </div>
+
+        <!-- New Tab Button -->
+        <button class="icon-btn icon-btn-md" title="New Tab">
+          <span class="icon">
+            <img src="icons/Add.svg" alt="New Tab">
+          </span>
+        </button>
+
+        <!-- Navigation Buttons -->
+        <button class="icon-btn icon-btn-md" title="Back" disabled>
+          <span class="icon">
+            <img src="icons/Arrow Left.svg" alt="Back">
+          </span>
+        </button>
+        <button class="icon-btn icon-btn-md" title="Forward" disabled>
+          <span class="icon">
+            <img src="icons/Arrow Right.svg" alt="Forward">
+          </span>
+        </button>
+
+        <!-- Search Bar -->
+        <div class="search-bar">
+          <span class="search-icon">
+            <img src="icons/Search.svg" alt="Search">
+          </span>
+          <span class="search-text">
+            <input type="text" class="search-input" id="address-input" placeholder="" autocomplete="off" spellcheck="false">
+            <span class="search-placeholder">Search</span>
+          </span>
+          <span class="star-icon">
+            <img src="icons/Star.svg" alt="Star">
+          </span>
+        </div>
+
+        <!-- Right Toolbar Buttons -->
+        <button class="icon-btn icon-btn-md" title="Split">
+          <span class="icon">
+            <img src="icons/Split.svg" alt="Split">
+          </span>
+        </button>
+        <button class="icon-btn icon-btn-md" title="Close">
+          <span class="icon">
+            <img src="icons/Dismiss.svg" alt="Close">
+          </span>
+        </button>
+      </div>
+
+      <!-- Content Area -->
+      <div class="content-area">
+        <!-- Sidebar (Tabs) - dynamically populated -->
+        <div class="sidebar">
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+          <!-- Scroll Container (with scrollbar) -->
+          <div class="scroll-container">
+            <!-- Webview for displaying web content -->
+            <div class="webview-container" id="webview-container">
+              <iframe class="webview-frame" id="webview-frame" sandbox="allow-scripts allow-same-origin allow-forms allow-popups" src="about:blank"></iframe>
+            </div>
+            <!-- New Tab Page (shown when no URL) -->
+            <div class="new-tab-page" id="new-tab-page">
+              <div class="ntp-sections">
+                <!-- Favorites Section -->
+                <div class="section">
+                  <div class="section-header">
+                    <span class="section-title">Favorites</span>
+                  </div>
+                  <div class="favorites-row">
+                    <div class="favorite-icon favicon-wikipedia"></div>
+                    <div class="favorite-icon favicon-wikipedia"></div>
+                    <div class="favorite-icon favicon-wikipedia"></div>
+                    <div class="favorite-icon favicon-wikipedia"></div>
+                    <div class="favorite-icon favicon-wikipedia"></div>
+                    <div class="favorite-icon favicon-wikipedia"></div>
+                    <div class="favorite-icon favicon-wikipedia"></div>
+                    <div class="favorite-icon favicon-wikipedia"></div>
+                    <div class="favorite-icon favicon-wikipedia"></div>
+                    <div class="favorite-icon favicon-wikipedia"></div>
+                    <div class="favorite-icon favicon-wikipedia"></div>
+                    <div class="favorite-icon favicon-wikipedia"></div>
+                    <button class="icon-btn icon-btn-lg" title="Add Favorite">
+                      <span class="icon">
+                        <img src="icons/Add.svg" alt="Add Favorite">
+                      </span>
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Chats Section -->
+                <div class="section">
+                  <div class="section-header">
+                    <span class="section-title">Chats</span>
+                  </div>
+                  <div class="chats-row">
+                    <div class="chat-card">
+                      <div class="chat-card-header">
+                        <div class="favicon favicon-wikipedia"></div>
+                        <span class="name">Name</span>
+                      </div>
+                      <div class="chat-card-description"><span>Description of chat summary here</span></div>
+                    </div>
+                    <div class="chat-card">
+                      <div class="chat-card-header">
+                        <div class="favicon favicon-wikipedia"></div>
+                        <span class="name">Name</span>
+                      </div>
+                      <div class="chat-card-description"><span>Description of chat summary here</span></div>
+                    </div>
+                    <div class="chat-card">
+                      <div class="chat-card-header">
+                        <div class="favicon favicon-wikipedia"></div>
+                        <span class="name">Name</span>
+                      </div>
+                      <div class="chat-card-description"><span>Description of chat summary here</span></div>
+                    </div>
+                    <div class="chat-card">
+                      <div class="chat-card-header">
+                        <div class="favicon favicon-wikipedia"></div>
+                        <span class="name">Name</span>
+                      </div>
+                      <div class="chat-card-description"><span>Description of chat summary here</span></div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Widgets Section -->
+                <div class="section">
+                  <div class="section-header">
+                    <span class="section-title">Widgets</span>
+                  </div>
+                  <div class="widgets-row">
+                    <div class="widget-card">
+                      <div class="widget-card-header">
+                        <div class="favicon favicon-wikipedia"></div>
+                        <span class="name">Name</span>
+                      </div>
+                    </div>
+                    <div class="widget-card">
+                      <div class="widget-card-header">
+                        <div class="favicon favicon-wikipedia"></div>
+                        <span class="name">Name</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Chat Overlay Container (separate from scroll) -->
+          <div class="chat-overlay-container">
+            <div class="chat-input-wrapper">
+              <div class="chat-input-fade"></div>
+              <div class="chat-input-bottom">
+                <div class="chat-input-container">
+                  <div class="chat-input-row">
+                    <input type="text" class="chat-text-input" id="chat-input" placeholder=" " autocomplete="off" spellcheck="false">
+                    <span class="chat-input-placeholder">Ask anything</span>
+                  </div>
+                  <div class="chat-input-actions">
+                    <button class="icon-btn icon-btn-sm" title="Attach">
+                      <span class="icon">
+                        <img src="icons/Add.svg" alt="Attach">
+                      </span>
+                    </button>
+                    <div class="chat-input-actions-right">
+                      <div class="model-selector">
+                        <span class="model-name">GPT-5</span>
+                        <span class="chevron">
+                          <svg viewBox="0 0 8 5" fill="none"><path d="M0.354 0.354a.5.5 0 01.707 0L4 3.293l2.939-2.94a.5.5 0 11.707.708l-3.293 3.293a.5.5 0 01-.707 0L.354 1.06a.5.5 0 010-.707z" fill="currentColor"/></svg>
+                        </span>
+                      </div>
+                      <button class="send-btn" title="Send">
+                      <span class="icon">
+                        <img src="icons/Arrow%20Up.svg" alt="Send">
+                      </span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Browser State & Logic -->
+  <script src="js/state.js"></script>
+  <script src="js/ui-bindings.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

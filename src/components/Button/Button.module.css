@@ -1,0 +1,240 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   BUTTON STYLES - Figma 1:1 Parity
+   
+   Variants:
+   - Size: sm (28px), md (40px), lg (48px)
+   - Style: neutral (default), subtle (ghost), outline
+   - Type: icon-only, text-only, icon+text
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ─────────────────────────────────────────────────────────────────────────
+   BASE BUTTON
+   ───────────────────────────────────────────────────────────────────────── */
+.button {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: var(--stroke-width-default) solid transparent;
+  cursor: pointer;
+  font-family: var(--font-family);
+  font-weight: var(--font-weight-regular);
+  transition: background var(--transition-fast), 
+              border-color var(--transition-fast),
+              opacity var(--transition-fast);
+  user-select: none;
+  flex-shrink: 0;
+}
+
+.button:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   SIZE: MEDIUM (Default) - Height: 40px
+   ═══════════════════════════════════════════════════════════════════════════ */
+.sizeMd {
+  height: var(--btn-md-height);
+  min-width: var(--btn-md-min-width);
+  border-radius: var(--btn-md-radius);
+  padding: 0 var(--btn-md-padding-x);
+  gap: var(--btn-md-gap-to-secondary);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-sm);
+}
+
+/* Icon-only medium button */
+.sizeMd.iconOnly {
+  width: var(--btn-md-height);
+  padding: 0;
+}
+
+.sizeMd .icon {
+  width: var(--btn-md-icon-size);
+  height: var(--btn-md-icon-size);
+}
+
+/* Text wrapper for medium button - includes internal padding */
+.sizeMd .textWrapper {
+  display: flex;
+  align-items: center;
+  gap: var(--btn-md-gap-default);
+  padding: var(--btn-md-padding-text-top) var(--btn-md-padding-text-side) var(--btn-md-padding-text-bottom);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   SIZE: LARGE - Height: 48px
+   ═══════════════════════════════════════════════════════════════════════════ */
+.sizeLg {
+  height: var(--btn-lg-height);
+  min-width: var(--btn-lg-min-width);
+  border-radius: var(--btn-lg-radius);
+  padding: 0 var(--btn-lg-padding-x);
+  gap: var(--btn-lg-gap-to-secondary);
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-base);
+}
+
+/* Icon-only large button */
+.sizeLg.iconOnly {
+  width: var(--btn-lg-height);
+  padding: 0 var(--btn-lg-padding-icon-only);
+}
+
+.sizeLg .icon {
+  width: var(--btn-lg-icon-size);
+  height: var(--btn-lg-icon-size);
+}
+
+/* Text wrapper for large button */
+.sizeLg .textWrapper {
+  display: flex;
+  align-items: center;
+  gap: var(--btn-lg-gap-default);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   SIZE: SMALL - Height: 28px
+   ═══════════════════════════════════════════════════════════════════════════ */
+.sizeSm {
+  height: var(--btn-sm-height);
+  min-width: var(--btn-sm-min-width);
+  border-radius: var(--btn-sm-radius);
+  padding: 0 var(--btn-sm-padding-x);
+  gap: var(--btn-sm-gap-default);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-sm);
+}
+
+/* Icon-only small button */
+.sizeSm.iconOnly {
+  width: var(--btn-sm-height);
+  padding: 0;
+}
+
+.sizeSm .icon {
+  width: var(--btn-sm-icon-size);
+  height: var(--btn-sm-icon-size);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   VARIANT: NEUTRAL (Default with shadow)
+   ═══════════════════════════════════════════════════════════════════════════ */
+.variantNeutral {
+  background: var(--btn-neutral-bg);
+  border-color: var(--btn-neutral-border);
+  color: var(--btn-neutral-fg);
+  box-shadow: var(--btn-neutral-shadow);
+}
+
+/* Inner shine overlay - applied via pseudo-element */
+.variantNeutral::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: var(--btn-neutral-inner-shine);
+  pointer-events: none;
+}
+
+.variantNeutral:hover {
+  background: var(--btn-neutral-bg-hover);
+}
+
+.variantNeutral:active {
+  background: var(--btn-neutral-bg-active);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   VARIANT: SUBTLE (Ghost - no background)
+   ═══════════════════════════════════════════════════════════════════════════ */
+.variantSubtle {
+  background: var(--btn-subtle-bg);
+  border-color: var(--btn-subtle-border);
+  color: var(--btn-subtle-fg);
+}
+
+.variantSubtle:hover {
+  background: var(--btn-subtle-bg-hover);
+}
+
+.variantSubtle:active {
+  background: var(--btn-subtle-bg-active);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   VARIANT: OUTLINE (Bordered)
+   ═══════════════════════════════════════════════════════════════════════════ */
+.variantOutline {
+  background: var(--btn-outline-bg);
+  border-color: var(--btn-outline-border);
+  color: var(--btn-outline-fg);
+}
+
+.variantOutline:hover {
+  background: var(--btn-outline-bg-hover);
+}
+
+.variantOutline:active {
+  background: var(--btn-outline-bg-active);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ICON CONTAINER
+   Visual centering adjustment for optical balance
+   ═══════════════════════════════════════════════════════════════════════════ */
+.iconWrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* Optical centering adjustment - icons often need slight offset */
+.iconWrapper svg {
+  /* Let the icon fill its container */
+  width: 100%;
+  height: 100%;
+}
+
+/* Icon-only buttons: center icon with flex, no optical tricks needed */
+.iconOnly .iconWrapper {
+  /* Icon fills the button naturally via flex centering */
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ICON (Figma-accurate: filled paths)
+   ═══════════════════════════════════════════════════════════════════════════ */
+.icon {
+  flex-shrink: 0;
+  color: var(--color-fg-icon);
+}
+
+.icon svg {
+  width: 100%;
+  height: 100%;
+  fill: currentColor;
+}
+
+/* Legacy stroke-based icons (add .stroke class if needed) */
+.icon.stroke svg {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: var(--stroke-width-icon);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   TEXT LABEL
+   ═══════════════════════════════════════════════════════════════════════════ */
+.label {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

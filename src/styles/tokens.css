@@ -1,0 +1,224 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   DESIGN TOKENS (from Figma - 1:1 parity)
+   ═══════════════════════════════════════════════════════════════════════════ */
+:root {
+  /* ─────────────────────────────────────────────────────────────────────────
+     COLORS - Neutrals
+     ───────────────────────────────────────────────────────────────────────── */
+  --color-neutral-white: #ffffff;
+  --color-neutral-100: #fafafa;
+  --color-neutral-150: #f5f5f5;
+  --color-neutral-200: #f0f0f0;
+  --color-neutral-250: #e0e0e0;
+  --color-neutral-400: #8f8f8f;
+  --color-neutral-stone: #6d7176;
+
+  /* ─────────────────────────────────────────────────────────────────────────
+     COLORS - Foreground
+     ───────────────────────────────────────────────────────────────────────── */
+  --color-fg-primary: #272320;
+  --color-fg-secondary: #6d7176;
+  --color-fg-tertiary: #8f8f8f;
+  --color-fg-on-brand: #e2ddd9;  --color-fg-icon: #242424;
+  /* ─────────────────────────────────────────────────────────────────────────
+     COLORS - Background
+     ───────────────────────────────────────────────────────────────────────── */
+  --color-bg-surface: #ffffff;
+  --color-bg-brand: #272320;
+  --color-bg-hover: #fafafa;
+  --color-bg-active: #f0f0f0;
+
+  /* ─────────────────────────────────────────────────────────────────────────
+     COLORS - Border
+     ───────────────────────────────────────────────────────────────────────── */
+  --color-border-default: #f0f0f0;
+  --color-border-subtle: #f5f5f5;
+  --color-alpha-black-5: rgba(0, 0, 0, 0.05);
+  --color-alpha-black-10: rgba(0, 0, 0, 0.1);
+  --color-alpha-black-15: rgba(0, 0, 0, 0.15);
+
+  /* ─────────────────────────────────────────────────────────────────────────
+     TYPOGRAPHY
+     ───────────────────────────────────────────────────────────────────────── */
+  --font-family: 'Segoe UI Variable', 'Segoe UI', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  --font-size-sm: 14px;
+  --font-size-base: 16px;
+  --font-size-md: 18px;
+  --line-height-sm: 20px;
+  --line-height-base: 26px;
+  --font-weight-regular: 450;
+  --font-weight-medium: 550;
+
+  /* ─────────────────────────────────────────────────────────────────────────
+     SPACING (semantic spacing scale)
+     ───────────────────────────────────────────────────────────────────────── */
+  --space-1: 2px;
+  --space-2: 4px;
+  --space-3: 6px;
+  --space-4: 8px;
+  --space-5: 10px;
+  --space-6: 12px;
+  --space-7: 16px;
+  --space-8: 24px;
+  --space-9: 32px;
+  --space-10: 64px;
+
+  /* ─────────────────────────────────────────────────────────────────────────
+     BORDER RADIUS
+     ───────────────────────────────────────────────────────────────────────── */
+  --radius-xs: 6px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-2xl: 24px;
+  --radius-3xl: 32px;
+
+  /* ─────────────────────────────────────────────────────────────────────────
+     STROKE WIDTH
+     ───────────────────────────────────────────────────────────────────────── */
+  --stroke-width-default: 1px;
+  --stroke-width-icon: 1.5px;
+
+  /* ─────────────────────────────────────────────────────────────────────────
+     SHADOWS
+     ───────────────────────────────────────────────────────────────────────── */
+  --shadow-ctrl-neutral: 0px 1px 3px 0px rgba(0, 0, 0, 0.15);
+  --shadow-ctrl-neutral-inner: inset 0px 0.5px 0.5px 0.5px white;
+  --shadow-brand: 0px 1px 3px 0px rgba(0, 0, 0, 0.15);
+
+  /* ─────────────────────────────────────────────────────────────────────────
+     ICON SIZES
+     ───────────────────────────────────────────────────────────────────────── */
+  --icon-size-sm: 16px;
+  --icon-size-md: 20px;
+  --icon-size-lg: 24px;
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+     BUTTON TOKENS - MEDIUM SIZE (Height: 40px)
+     All values extracted 1:1 from Figma
+     ═══════════════════════════════════════════════════════════════════════════ */
+  
+  /* Dimensions */
+  --btn-md-height: 40px;
+  --btn-md-min-width: 40px;
+  
+  /* Corner radius */
+  --btn-md-radius: 12px;
+  
+  /* Padding */
+  --btn-md-padding-x: 10px;
+  --btn-md-padding-text-top: 10px;
+  --btn-md-padding-text-bottom: 10px;
+  --btn-md-padding-text-side: 2px;
+  
+  /* Gap */
+  --btn-md-gap-default: 2px;
+  --btn-md-gap-to-secondary: 4px;
+  
+  /* Icon */
+  --btn-md-icon-size: 24px;
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+     BUTTON TOKENS - LARGE SIZE (Height: 48px)
+     All values extracted 1:1 from Figma
+     ═══════════════════════════════════════════════════════════════════════════ */
+  
+  /* Dimensions */
+  --btn-lg-height: 48px;
+  --btn-lg-min-width: 48px;
+  
+  /* Corner radius */
+  --btn-lg-radius: 20px;
+  
+  /* Padding */
+  --btn-lg-padding-x: 16px;
+  --btn-lg-padding-icon-only: 12px;
+  
+  /* Gap */
+  --btn-lg-gap-default: 4px;
+  --btn-lg-gap-to-secondary: 6px;
+  
+  /* Icon */
+  --btn-lg-icon-size: 24px;
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+     BUTTON TOKENS - SMALL SIZE (Height: 28px)
+     ═══════════════════════════════════════════════════════════════════════════ */
+  
+  /* Dimensions */
+  --btn-sm-height: 28px;
+  --btn-sm-min-width: 28px;
+  
+  /* Corner radius */
+  --btn-sm-radius: 8px;
+  
+  /* Padding */
+  --btn-sm-padding-x: 8px;
+  
+  /* Gap */
+  --btn-sm-gap-default: 2px;
+  
+  /* Icon */
+  --btn-sm-icon-size: 16px;
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+     BUTTON VARIANT - NEUTRAL (Default)
+     ═══════════════════════════════════════════════════════════════════════════ */
+  --btn-neutral-bg: rgba(255, 255, 255, 0.7);
+  --btn-neutral-bg-hover: rgba(255, 255, 255, 0.85);
+  --btn-neutral-bg-active: rgba(255, 255, 255, 0.6);
+  --btn-neutral-border: rgba(255, 255, 255, 0);
+  --btn-neutral-fg: #272320;
+  --btn-neutral-shadow: var(--shadow-ctrl-neutral);
+  --btn-neutral-inner-shine: var(--shadow-ctrl-neutral-inner);
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+     BUTTON VARIANT - SUBTLE (Ghost)
+     ═══════════════════════════════════════════════════════════════════════════ */
+  --btn-subtle-bg: transparent;
+  --btn-subtle-bg-hover: var(--color-bg-hover);
+  --btn-subtle-bg-active: var(--color-bg-active);
+  --btn-subtle-border: transparent;
+  --btn-subtle-fg: #272320;
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+     BUTTON VARIANT - OUTLINE
+     ═══════════════════════════════════════════════════════════════════════════ */
+  --btn-outline-bg: transparent;
+  --btn-outline-bg-hover: var(--color-bg-hover);
+  --btn-outline-bg-active: var(--color-bg-active);
+  --btn-outline-border: var(--color-border-default);
+  --btn-outline-fg: #272320;
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+     TRANSITIONS
+     ═══════════════════════════════════════════════════════════════════════════ */
+  --transition-fast: 120ms ease-out;
+  --transition-normal: 200ms ease-out;
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+     FOCUS RING
+     ═══════════════════════════════════════════════════════════════════════════ */
+  --focus-ring-width: 2px;
+  --focus-ring-offset: 2px;
+  --focus-ring-color: var(--color-fg-primary);
+  --focus-ring: 0 0 0 var(--focus-ring-offset) var(--color-bg-surface), 
+                0 0 0 calc(var(--focus-ring-offset) + var(--focus-ring-width)) var(--focus-ring-color);
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+     TAB TOKENS
+     ═══════════════════════════════════════════════════════════════════════════ */
+  --tab-width: 200px;
+  --tab-height: 40px;
+  --tab-padding: 10px;
+  --tab-radius: 12px;
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+     FAVICON TOKENS
+     ═══════════════════════════════════════════════════════════════════════════ */
+  --favicon-size-sm: 16px;
+  --favicon-size-md: 20px;
+  --favicon-size-lg: 32px;
+  --favicon-radius: 6px;
+}
