@@ -217,15 +217,26 @@ index.html          # Modify: Conversation display area
 
 ---
 
-### Phase 5: New Tab Page
+### Phase 5: New Tab Page ✅
 **Goal**: Fully functional new tab page with dynamic content
 
 #### Tasks:
-- [ ] Real favorites management (add, remove, reorder)
-- [ ] Recent conversations with actual data
-- [ ] Widget system (weather, notes, etc.)
+- [x] Real favorites management (add, remove, reorder)
+- [x] Recent conversations with actual data
+- [x] Widget system (weather, notes, etc.)
 - [ ] Search suggestions in address bar
 - [ ] Quick actions
+
+#### Completed:
+- Favorites drag-and-drop reordering
+- Favorites context menu (open, edit, remove)
+- Add/edit favorite dialog with icon picker
+- Real conversations from state with metadata
+- Chat card click to resume conversation
+- Chat context menu with delete option
+- Widget registry with Notes, Weather, Clock, Quick Links
+- Widget picker modal to add/remove widgets
+- Widget settings menu
 
 #### Agent Prompt:
 ```

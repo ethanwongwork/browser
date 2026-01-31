@@ -651,6 +651,78 @@ const BrowserState = {
       }
     });
 
+    // Clock widget
+    this.registerWidget({
+      id: 'clock',
+      title: 'Clock',
+      favicon: 'perplexity', // Using generic icon for clock
+      render: (container) => {
+        const clockContent = document.createElement('div');
+        clockContent.className = 'widget-clock-content';
+        
+        const updateTime = () => {
+          const now = new Date();
+          const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+          const dateStr = now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+          clockContent.innerHTML = `
+            <div class="clock-time">${timeStr}</div>
+            <div class="clock-date">${dateStr}</div>
+          `;
+        };
+        
+        updateTime();
+        const intervalId = setInterval(updateTime, 1000);
+        
+        // Store interval ID for cleanup
+        container.dataset.clockInterval = intervalId;
+        
+        // Cleanup when widget is removed
+        const observer = new MutationObserver((mutations) => {
+          if (!document.body.contains(container)) {
+            clearInterval(intervalId);
+            observer.disconnect();
+          }
+        });
+        observer.observe(document.body, { childList: true, subtree: true });
+      }
+    });
+
+    // Quick Links widget
+    this.registerWidget({
+      id: 'quicklinks',
+      title: 'Quick Links',
+      favicon: 'google', 
+      render: (container) => {
+        const linksContent = document.createElement('div');
+        linksContent.className = 'widget-quicklinks-content';
+        
+        const defaultLinks = [
+          { name: 'Google', url: 'https://google.com' },
+          { name: 'GitHub', url: 'https://github.com' },
+          { name: 'YouTube', url: 'https://youtube.com' },
+          { name: 'Reddit', url: 'https://reddit.com' }
+        ];
+        
+        const links = JSON.parse(localStorage.getItem('widget_quicklinks') || 'null') || defaultLinks;
+        
+        links.forEach(link => {
+          const a = document.createElement('a');
+          a.href = '#';
+          a.className = 'quicklink-item';
+          a.textContent = link.name;
+          a.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (window.UIBindings) {
+              window.UIBindings.navigateToUrl(link.url);
+            }
+          });
+          linksContent.appendChild(a);
+        });
+        
+        container.appendChild(linksContent);
+      }
+    });
+
     console.log('[State] Registered default widgets:', Object.keys(this._widgetRegistry));
   },
 
@@ -678,13 +750,17 @@ const BrowserState = {
   getRecentChats(limit = 4) {
     return this.conversations
       .slice()
-      .sort((a, b) => b.lastUpdated - a.lastUpdated)
+      .filter(c => c.messages && c.messages.length > 0)
+      .sort((a, b) => (b.lastUpdated || 0) - (a.lastUpdated || 0))
       .slice(0, limit)
       .map(c => ({
         id: c.id,
-        title: c.title,
+        title: c.title || 'New conversation',
         description: this.getConversationPreview(c),
-        favicon: 'wikipedia' // Default favicon for chats
+        messageCount: c.messages.length,
+        lastUpdated: c.lastUpdated || c.createdAt,
+        pageContext: c.pageContext,
+        favicon: 'chat' // Default favicon for chats
       }));
   },
 
@@ -694,9 +770,15 @@ const BrowserState = {
    * @returns {string}
    */
   getConversationPreview(conversation) {
-    const lastMessage = conversation.messages[conversation.messages.length - 1];
+    if (!conversation.messages || conversation.messages.length === 0) return 'No messages yet';
+    // Get last assistant message for better preview
+    const lastAssistantMsg = [...conversation.messages]
+      .reverse()
+      .find(m => m.role === 'assistant');
+    const lastMessage = lastAssistantMsg || conversation.messages[conversation.messages.length - 1];
     if (!lastMessage) return '';
-    return lastMessage.content.slice(0, 100) + (lastMessage.content.length > 100 ? '...' : '');
+    const content = lastMessage.content || '';
+    return content.slice(0, 100) + (content.length > 100 ? '...' : '');
   },
 
   /**
@@ -717,6 +799,23 @@ const BrowserState = {
   },
 
   /**
+   * Update an existing favorite
+   * @param {string} favoriteId
+   * @param {Object} updates - { title, url, favicon }
+   */
+  updateFavorite(favoriteId, updates) {
+    const fav = this.ntp.favorites.find(f => f.id === favoriteId);
+    if (!fav) return;
+
+    if (updates.title !== undefined) fav.title = updates.title;
+    if (updates.url !== undefined) fav.url = updates.url;
+    if (updates.favicon !== undefined) fav.favicon = updates.favicon;
+
+    this.saveNtpData();
+    this.emit('ntpUpdated', this.getNtpData());
+  },
+
+  /**
    * Remove a favorite from NTP
    * @param {string} favoriteId
    */
@@ -727,6 +826,25 @@ const BrowserState = {
       this.saveNtpData();
       this.emit('ntpUpdated', this.getNtpData());
     }
+  },
+
+  /**
+   * Reorder a favorite
+   * @param {string} draggedId - ID of favorite being dragged
+   * @param {string} targetId - ID of favorite to drop before
+   */
+  reorderFavorite(draggedId, targetId) {
+    const draggedIndex = this.ntp.favorites.findIndex(f => f.id === draggedId);
+    const targetIndex = this.ntp.favorites.findIndex(f => f.id === targetId);
+
+    if (draggedIndex === -1 || targetIndex === -1) return;
+
+    const [removed] = this.ntp.favorites.splice(draggedIndex, 1);
+    const newTargetIndex = this.ntp.favorites.findIndex(f => f.id === targetId);
+    this.ntp.favorites.splice(newTargetIndex, 0, removed);
+
+    this.saveNtpData();
+    this.emit('ntpUpdated', this.getNtpData());
   },
 
   /**
@@ -1131,6 +1249,7 @@ const BrowserState = {
 
     this.saveConversations();
     this.emit('conversationDeleted', conversation);
+    this.emit('ntpUpdated', this.getNtpData());
   },
 
   // ═══════════════════════════════════════════════════════════════════════════

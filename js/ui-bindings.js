@@ -860,39 +860,287 @@ const UIBindings = {
   renderFavorites(favorites) {
     if (!this.elements.favoritesRow) return;
 
-    // Clear existing (except add button)
-    const addBtn = this.elements.favoritesRow.querySelector('.icon-btn');
+    // Clear existing
     this.elements.favoritesRow.innerHTML = '';
 
     // Render favorites (max 12)
-    favorites.slice(0, 12).forEach(fav => {
+    favorites.slice(0, 12).forEach((fav, index) => {
       const favEl = document.createElement('div');
       favEl.className = `favorite-icon favicon-${fav.favicon || 'wikipedia'}`;
       favEl.title = fav.title;
+      favEl.dataset.favoriteId = fav.id;
+      favEl.dataset.index = index;
+      favEl.draggable = true;
+
+      // Click to navigate
       favEl.addEventListener('click', () => {
         this.navigateToUrl(fav.url);
       });
+
+      // Right-click context menu
+      favEl.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        this.showFavoriteContextMenu(e, fav);
+      });
+
+      // Drag and drop
+      favEl.addEventListener('dragstart', (e) => this.onFavoriteDragStart(e, fav));
+      favEl.addEventListener('dragover', (e) => this.onFavoriteDragOver(e));
+      favEl.addEventListener('dragenter', (e) => this.onFavoriteDragEnter(e));
+      favEl.addEventListener('dragleave', (e) => this.onFavoriteDragLeave(e));
+      favEl.addEventListener('drop', (e) => this.onFavoriteDrop(e, fav));
+      favEl.addEventListener('dragend', (e) => this.onFavoriteDragEnd(e));
+
       this.elements.favoritesRow.appendChild(favEl);
     });
 
-    // Re-add the add button
-    if (addBtn) {
-      this.elements.favoritesRow.appendChild(addBtn);
-    } else {
-      // Create add button if missing
-      const newAddBtn = document.createElement('button');
-      newAddBtn.className = 'icon-btn icon-btn-lg';
-      newAddBtn.title = 'Add Favorite';
-      newAddBtn.innerHTML = '<span class="icon"><img src="icons/Add.svg" alt="Add Favorite"></span>';
-      newAddBtn.addEventListener('click', () => {
-        // Prompt for URL (simplified)
-        const url = prompt('Enter URL to add to favorites:');
-        if (url) {
-          BrowserState.addFavorite({ title: url, url: url });
-        }
-      });
-      this.elements.favoritesRow.appendChild(newAddBtn);
+    // Add button
+    const addBtn = document.createElement('button');
+    addBtn.className = 'icon-btn icon-btn-lg add-favorite-btn';
+    addBtn.title = 'Add Favorite';
+    addBtn.innerHTML = '<span class="icon"><img src="icons/Add.svg" alt="Add Favorite"></span>';
+    addBtn.addEventListener('click', () => {
+      this.showAddFavoriteDialog();
+    });
+    this.elements.favoritesRow.appendChild(addBtn);
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // FAVORITES DRAG AND DROP
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  draggedFavorite: null,
+
+  onFavoriteDragStart(e, fav) {
+    this.draggedFavorite = fav;
+    e.target.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+  },
+
+  onFavoriteDragOver(e) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  },
+
+  onFavoriteDragEnter(e) {
+    const favIcon = e.target.closest('.favorite-icon');
+    if (favIcon && !favIcon.classList.contains('dragging')) {
+      favIcon.classList.add('drag-over');
     }
+  },
+
+  onFavoriteDragLeave(e) {
+    const favIcon = e.target.closest('.favorite-icon');
+    if (favIcon) {
+      favIcon.classList.remove('drag-over');
+    }
+  },
+
+  onFavoriteDrop(e, targetFav) {
+    e.preventDefault();
+    const favIcon = e.target.closest('.favorite-icon');
+    if (favIcon) {
+      favIcon.classList.remove('drag-over');
+    }
+
+    if (!this.draggedFavorite || this.draggedFavorite.id === targetFav.id) return;
+
+    BrowserState.reorderFavorite(this.draggedFavorite.id, targetFav.id);
+  },
+
+  onFavoriteDragEnd(e) {
+    e.target.classList.remove('dragging');
+    this.draggedFavorite = null;
+    document.querySelectorAll('.favorite-icon.drag-over').forEach(el => {
+      el.classList.remove('drag-over');
+    });
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // FAVORITES CONTEXT MENU
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  showFavoriteContextMenu(e, fav) {
+    this.hideContextMenu();
+
+    const menu = document.createElement('div');
+    menu.className = 'context-menu';
+    menu.id = 'tab-context-menu';
+
+    menu.innerHTML = `
+      <div class="context-menu-item" data-action="open">
+        <span>Open</span>
+      </div>
+      <div class="context-menu-item" data-action="open-new-tab">
+        <span>Open in New Tab</span>
+      </div>
+      <div class="context-menu-divider"></div>
+      <div class="context-menu-item" data-action="edit">
+        <span>Edit</span>
+      </div>
+      <div class="context-menu-item" data-action="remove">
+        <span>Remove</span>
+      </div>
+    `;
+
+    menu.style.left = `${e.clientX}px`;
+    menu.style.top = `${e.clientY}px`;
+
+    menu.addEventListener('click', (event) => {
+      const item = event.target.closest('.context-menu-item');
+      if (!item) return;
+
+      const action = item.dataset.action;
+      this.handleFavoriteContextAction(action, fav);
+      this.hideContextMenu();
+    });
+
+    document.body.appendChild(menu);
+
+    // Adjust position if off-screen
+    const rect = menu.getBoundingClientRect();
+    if (rect.right > window.innerWidth) {
+      menu.style.left = `${window.innerWidth - rect.width - 10}px`;
+    }
+    if (rect.bottom > window.innerHeight) {
+      menu.style.top = `${window.innerHeight - rect.height - 10}px`;
+    }
+
+    // Close on click outside
+    setTimeout(() => {
+      const closeHandler = (event) => {
+        if (!menu.contains(event.target)) {
+          this.hideContextMenu();
+          document.removeEventListener('click', closeHandler);
+        }
+      };
+      document.addEventListener('click', closeHandler);
+    }, 0);
+  },
+
+  handleFavoriteContextAction(action, fav) {
+    switch (action) {
+      case 'open':
+        this.navigateToUrl(fav.url);
+        break;
+      case 'open-new-tab':
+        BrowserState.addTab({ url: fav.url, title: fav.title });
+        break;
+      case 'edit':
+        this.showEditFavoriteDialog(fav);
+        break;
+      case 'remove':
+        BrowserState.removeFavorite(fav.id);
+        break;
+    }
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // ADD/EDIT FAVORITE DIALOGS
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  showAddFavoriteDialog() {
+    this.showFavoriteDialog({
+      title: '',
+      url: '',
+      favicon: 'wikipedia'
+    }, false);
+  },
+
+  showEditFavoriteDialog(fav) {
+    this.showFavoriteDialog(fav, true);
+  },
+
+  showFavoriteDialog(fav, isEdit) {
+    // Remove existing modal
+    const existing = document.getElementById('favorite-dialog');
+    if (existing) existing.remove();
+
+    const modal = document.createElement('div');
+    modal.id = 'favorite-dialog';
+    modal.className = 'modal-overlay';
+
+    const faviconOptions = [
+      'google', 'youtube', 'wikipedia', 'reddit', 'twitter', 'facebook',
+      'instagram', 'linkedin', 'netflix', 'spotify', 'amazon', 'github'
+    ];
+
+    modal.innerHTML = `
+      <div class="modal-content favorite-dialog">
+        <div class="modal-header">
+          <h2>${isEdit ? 'Edit Favorite' : 'Add Favorite'}</h2>
+          <button class="modal-close" onclick="document.getElementById('favorite-dialog').remove()">
+            <img src="icons/Dismiss.svg" alt="Close">
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="setting-group">
+            <label class="setting-label">Title</label>
+            <input type="text" id="fav-title" class="setting-input" value="${this.escapeHtml(fav.title)}" placeholder="Website name">
+          </div>
+          <div class="setting-group">
+            <label class="setting-label">URL</label>
+            <input type="text" id="fav-url" class="setting-input" value="${this.escapeHtml(fav.url)}" placeholder="https://example.com">
+          </div>
+          <div class="setting-group">
+            <label class="setting-label">Icon</label>
+            <div class="favicon-picker">
+              ${faviconOptions.map(f => `
+                <div class="favicon-option favicon-${f} ${f === fav.favicon ? 'selected' : ''}" data-favicon="${f}"></div>
+              `).join('')}
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" onclick="document.getElementById('favorite-dialog').remove()">Cancel</button>
+          <button class="btn btn-primary" id="save-favorite-btn">${isEdit ? 'Save' : 'Add'}</button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    // Favicon picker
+    let selectedFavicon = fav.favicon || 'wikipedia';
+    modal.querySelectorAll('.favicon-option').forEach(opt => {
+      opt.addEventListener('click', () => {
+        modal.querySelectorAll('.favicon-option').forEach(o => o.classList.remove('selected'));
+        opt.classList.add('selected');
+        selectedFavicon = opt.dataset.favicon;
+      });
+    });
+
+    // Save button
+    document.getElementById('save-favorite-btn').addEventListener('click', () => {
+      const title = document.getElementById('fav-title').value.trim();
+      const url = document.getElementById('fav-url').value.trim();
+      
+      if (!url) {
+        alert('Please enter a URL');
+        return;
+      }
+
+      if (isEdit) {
+        BrowserState.updateFavorite(fav.id, {
+          title: title || url,
+          url: url,
+          favicon: selectedFavicon
+        });
+      } else {
+        BrowserState.addFavorite({
+          title: title || url,
+          url: url,
+          favicon: selectedFavicon
+        });
+      }
+
+      modal.remove();
+    });
+
+    // Close on overlay click
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) modal.remove();
+    });
   },
 
   /**
@@ -903,32 +1151,146 @@ const UIBindings = {
 
     this.elements.chatsRow.innerHTML = '';
 
-    // If no chats, show placeholders
-    const displayChats = chats.length > 0 ? chats : [
-      { id: '1', title: 'Name', description: 'Description of chat summary here', favicon: 'wikipedia' },
-      { id: '2', title: 'Name', description: 'Description of chat summary here', favicon: 'wikipedia' },
-      { id: '3', title: 'Name', description: 'Description of chat summary here', favicon: 'wikipedia' },
-      { id: '4', title: 'Name', description: 'Description of chat summary here', favicon: 'wikipedia' }
-    ];
+    // Get real conversations from state
+    const conversations = BrowserState.getRecentChats(4);
+    
+    if (conversations.length === 0) {
+      // Show empty state
+      const emptyState = document.createElement('div');
+      emptyState.className = 'chats-empty-state';
+      emptyState.innerHTML = `
+        <p>No recent conversations</p>
+        <p class="hint">Start a chat using the input below</p>
+      `;
+      this.elements.chatsRow.appendChild(emptyState);
+      return;
+    }
 
-    displayChats.forEach(chat => {
+    conversations.forEach(conv => {
       const card = document.createElement('div');
       card.className = 'chat-card';
+      card.dataset.conversationId = conv.id;
+
+      // Use description from the processed chat data
+      const preview = conv.description || 'New conversation';
+      
+      // Determine favicon based on context
+      const favicon = conv.pageContext?.url ? this.getFaviconForUrl(conv.pageContext.url) : 'copilot';
+
       card.innerHTML = `
         <div class="chat-card-header">
-          <div class="favicon favicon-${chat.favicon || 'wikipedia'}"></div>
-          <span class="name">${this.escapeHtml(chat.title)}</span>
+          <div class="favicon favicon-${favicon}"></div>
+          <span class="name">${this.escapeHtml(conv.title)}</span>
         </div>
-        <div class="chat-card-description"><span>${this.escapeHtml(chat.description || '')}</span></div>
+        <div class="chat-card-description"><span>${this.escapeHtml(preview)}</span></div>
+        <div class="chat-card-meta">
+          <span class="time">${this.formatRelativeTime(conv.lastUpdated)}</span>
+          <span class="message-count">${conv.messageCount} messages</span>
+        </div>
       `;
+
+      // Click to resume conversation
       card.addEventListener('click', () => {
-        if (chat.id && BrowserState.getConversation(chat.id)) {
-          BrowserState.setActiveConversation(chat.id);
-          console.log('[UI] Activated conversation:', chat.id);
-        }
+        BrowserState.setActiveConversation(conv.id);
+        this.renderConversation();
+        console.log('[UI] Resumed conversation:', conv.id);
       });
+
+      // Right-click to delete
+      card.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        this.showChatContextMenu(e, conv);
+      });
+
       this.elements.chatsRow.appendChild(card);
     });
+  },
+
+  /**
+   * Show chat context menu
+   */
+  showChatContextMenu(e, conv) {
+    this.hideContextMenu();
+
+    const menu = document.createElement('div');
+    menu.className = 'context-menu';
+    menu.id = 'tab-context-menu';
+
+    menu.innerHTML = `
+      <div class="context-menu-item" data-action="open">
+        <span>Continue Chat</span>
+      </div>
+      <div class="context-menu-divider"></div>
+      <div class="context-menu-item" data-action="delete">
+        <span>Delete</span>
+      </div>
+    `;
+
+    menu.style.left = `${e.clientX}px`;
+    menu.style.top = `${e.clientY}px`;
+
+    menu.addEventListener('click', (event) => {
+      const item = event.target.closest('.context-menu-item');
+      if (!item) return;
+
+      const action = item.dataset.action;
+      if (action === 'open') {
+        BrowserState.setActiveConversation(conv.id);
+        this.renderConversation();
+      } else if (action === 'delete') {
+        BrowserState.deleteConversation(conv.id);
+      }
+      this.hideContextMenu();
+    });
+
+    document.body.appendChild(menu);
+
+    setTimeout(() => {
+      const closeHandler = (event) => {
+        if (!menu.contains(event.target)) {
+          this.hideContextMenu();
+          document.removeEventListener('click', closeHandler);
+        }
+      };
+      document.addEventListener('click', closeHandler);
+    }, 0);
+  },
+
+  /**
+   * Format relative time
+   */
+  formatRelativeTime(timestamp) {
+    const now = Date.now();
+    const diff = now - timestamp;
+    const minutes = Math.floor(diff / 60000);
+    const hours = Math.floor(diff / 3600000);
+    const days = Math.floor(diff / 86400000);
+
+    if (minutes < 1) return 'Just now';
+    if (minutes < 60) return `${minutes}m ago`;
+    if (hours < 24) return `${hours}h ago`;
+    if (days < 7) return `${days}d ago`;
+    return new Date(timestamp).toLocaleDateString();
+  },
+
+  /**
+   * Get favicon class for a URL
+   */
+  getFaviconForUrl(url) {
+    try {
+      const hostname = new URL(url).hostname.toLowerCase();
+      const faviconMap = {
+        'google.com': 'google', 'youtube.com': 'youtube', 'wikipedia.org': 'wikipedia',
+        'reddit.com': 'reddit', 'twitter.com': 'twitter', 'x.com': 'x',
+        'facebook.com': 'facebook', 'instagram.com': 'instagram', 'linkedin.com': 'linkedin',
+        'netflix.com': 'netflix', 'spotify.com': 'spotify', 'amazon.com': 'amazon',
+        'github.com': 'github', 'notion.so': 'notion', 'figma.com': 'figma'
+      };
+      for (const [domain, favicon] of Object.entries(faviconMap)) {
+        if (hostname.includes(domain)) return favicon;
+      }
+    } catch (e) {}
+    return 'wikipedia';
   },
 
   /**
@@ -939,30 +1301,193 @@ const UIBindings = {
 
     this.elements.widgetsRow.innerHTML = '';
 
-    // If no widgets, show placeholders
-    const displayWidgets = widgets.length > 0 ? widgets : [
-      { id: 'placeholder1', title: 'Name', favicon: 'wikipedia' },
-      { id: 'placeholder2', title: 'Name', favicon: 'wikipedia' }
-    ];
+    // Get enabled widgets from registry
+    const enabledWidgets = BrowserState.getEnabledWidgets();
 
-    displayWidgets.forEach(widget => {
+    if (enabledWidgets.length === 0) {
+      // Show placeholder widgets
+      this.renderPlaceholderWidgets();
+      return;
+    }
+
+    enabledWidgets.forEach(widget => {
       const card = document.createElement('div');
       card.className = 'widget-card';
+      card.dataset.widgetId = widget.id;
+
       card.innerHTML = `
         <div class="widget-card-header">
-          <div class="favicon favicon-${widget.favicon || 'wikipedia'}"></div>
+          <div class="widget-icon">${widget.icon || '📦'}</div>
           <span class="name">${this.escapeHtml(widget.title)}</span>
+          <button class="widget-settings-btn" title="Widget settings">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+              <path d="M8 4a1 1 0 100-2 1 1 0 000 2zm0 5a1 1 0 100-2 1 1 0 000 2zm0 5a1 1 0 100-2 1 1 0 000 2z"/>
+            </svg>
+          </button>
         </div>
-        <div class="widget-card-content"></div>
+        <div class="widget-card-content" id="widget-content-${widget.id}"></div>
       `;
-      
-      // Call widget render function if it exists
+
+      // Widget settings
+      card.querySelector('.widget-settings-btn')?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.showWidgetSettingsMenu(e, widget);
+      });
+
+      this.elements.widgetsRow.appendChild(card);
+
+      // Render widget content
+      const contentEl = card.querySelector('.widget-card-content');
       if (typeof widget.render === 'function') {
-        const contentEl = card.querySelector('.widget-card-content');
         widget.render(contentEl);
       }
-      
+    });
+
+    // Add widget button
+    const addWidgetBtn = document.createElement('button');
+    addWidgetBtn.className = 'add-widget-btn';
+    addWidgetBtn.innerHTML = `
+      <span class="icon"><img src="icons/Add.svg" alt="Add Widget"></span>
+      <span>Add Widget</span>
+    `;
+    addWidgetBtn.addEventListener('click', () => this.showWidgetPicker());
+    this.elements.widgetsRow.appendChild(addWidgetBtn);
+  },
+
+  renderPlaceholderWidgets() {
+    const placeholders = [
+      { title: 'Notes', icon: '📝' },
+      { title: 'Weather', icon: '🌤️' }
+    ];
+
+    placeholders.forEach(p => {
+      const card = document.createElement('div');
+      card.className = 'widget-card placeholder';
+      card.innerHTML = `
+        <div class="widget-card-header">
+          <div class="widget-icon">${p.icon}</div>
+          <span class="name">${p.title}</span>
+        </div>
+        <div class="widget-card-content">
+          <p class="widget-placeholder-text">Widget not configured</p>
+        </div>
+      `;
       this.elements.widgetsRow.appendChild(card);
+    });
+  },
+
+  /**
+   * Show widget settings menu
+   */
+  showWidgetSettingsMenu(e, widget) {
+    this.hideContextMenu();
+
+    const menu = document.createElement('div');
+    menu.className = 'context-menu';
+    menu.id = 'tab-context-menu';
+
+    menu.innerHTML = `
+      <div class="context-menu-item" data-action="refresh">
+        <span>Refresh</span>
+      </div>
+      <div class="context-menu-divider"></div>
+      <div class="context-menu-item" data-action="remove">
+        <span>Remove Widget</span>
+      </div>
+    `;
+
+    menu.style.left = `${e.clientX}px`;
+    menu.style.top = `${e.clientY}px`;
+
+    menu.addEventListener('click', (event) => {
+      const item = event.target.closest('.context-menu-item');
+      if (!item) return;
+
+      const action = item.dataset.action;
+      if (action === 'refresh' && typeof widget.render === 'function') {
+        const contentEl = document.getElementById(`widget-content-${widget.id}`);
+        if (contentEl) widget.render(contentEl);
+      } else if (action === 'remove') {
+        BrowserState.disableWidget(widget.id);
+      }
+      this.hideContextMenu();
+    });
+
+    document.body.appendChild(menu);
+
+    setTimeout(() => {
+      const closeHandler = (event) => {
+        if (!menu.contains(event.target)) {
+          this.hideContextMenu();
+          document.removeEventListener('click', closeHandler);
+        }
+      };
+      document.addEventListener('click', closeHandler);
+    }, 0);
+  },
+
+  /**
+   * Show widget picker
+   */
+  showWidgetPicker() {
+    const existing = document.getElementById('widget-picker');
+    if (existing) existing.remove();
+
+    const allWidgets = BrowserState.getAllWidgets();
+    const enabledIds = BrowserState.ntp.enabledWidgets;
+
+    const modal = document.createElement('div');
+    modal.id = 'widget-picker';
+    modal.className = 'modal-overlay';
+
+    modal.innerHTML = `
+      <div class="modal-content widget-picker-modal">
+        <div class="modal-header">
+          <h2>Add Widget</h2>
+          <button class="modal-close" onclick="document.getElementById('widget-picker').remove()">
+            <img src="icons/Dismiss.svg" alt="Close">
+          </button>
+        </div>
+        <div class="modal-body">
+          ${allWidgets.length === 0 ? '<p>No widgets available</p>' : ''}
+          <div class="widget-picker-list">
+            ${allWidgets.map(w => `
+              <div class="widget-picker-item ${enabledIds.includes(w.id) ? 'enabled' : ''}" data-widget-id="${w.id}">
+                <div class="widget-icon">${w.icon || '📦'}</div>
+                <div class="widget-info">
+                  <span class="widget-name">${this.escapeHtml(w.title)}</span>
+                  <span class="widget-desc">${this.escapeHtml(w.description || '')}</span>
+                </div>
+                <div class="widget-toggle">
+                  ${enabledIds.includes(w.id) ? '✓ Added' : 'Add'}
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    // Toggle widgets
+    modal.querySelectorAll('.widget-picker-item').forEach(item => {
+      item.addEventListener('click', () => {
+        const widgetId = item.dataset.widgetId;
+        if (BrowserState.isWidgetEnabled(widgetId)) {
+          BrowserState.disableWidget(widgetId);
+          item.classList.remove('enabled');
+          item.querySelector('.widget-toggle').textContent = 'Add';
+        } else {
+          BrowserState.enableWidget(widgetId);
+          item.classList.add('enabled');
+          item.querySelector('.widget-toggle').textContent = '✓ Added';
+        }
+      });
+    });
+
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) modal.remove();
     });
   },
 
