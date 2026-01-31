@@ -535,6 +535,189 @@
     }
 
     /* ═══════════════════════════════════════════════════════════════════════════
+       LOADING BAR
+       ═══════════════════════════════════════════════════════════════════════════ */
+    .loading-bar {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: var(--color-neutral-200);
+      z-index: 100;
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+
+    .loading-bar.active {
+      opacity: 1;
+    }
+
+    .loading-bar::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 30%;
+      height: 100%;
+      background: var(--color-fg-primary);
+      animation: loading-progress 1.5s ease-in-out infinite;
+    }
+
+    @keyframes loading-progress {
+      0% { left: -30%; }
+      100% { left: 100%; }
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════════════
+       FIND BAR
+       ═══════════════════════════════════════════════════════════════════════════ */
+    .find-bar {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      padding: var(--space-4);
+      background: var(--color-bg-surface);
+      border-bottom: var(--stroke-width-default) solid var(--color-border-default);
+    }
+
+    .find-bar-content {
+      display: flex;
+      align-items: center;
+      gap: var(--space-4);
+      padding: var(--space-2) var(--space-4);
+      background: var(--color-neutral-100);
+      border-radius: var(--radius-md);
+    }
+
+    .find-input {
+      width: 200px;
+      border: none;
+      background: transparent;
+      font-size: var(--font-size-sm);
+      font-family: var(--font-family);
+      color: var(--color-fg-primary);
+      outline: none;
+    }
+
+    .find-input::placeholder {
+      color: var(--color-neutral-400);
+    }
+
+    .find-matches {
+      font-size: var(--font-size-sm);
+      color: var(--color-fg-secondary);
+      min-width: 50px;
+      text-align: center;
+    }
+
+    .find-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
+      border: none;
+      background: transparent;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      color: var(--color-fg-secondary);
+    }
+
+    .find-btn:hover {
+      background: var(--color-bg-hover);
+      color: var(--color-fg-primary);
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════════════
+       ERROR PAGE
+       ═══════════════════════════════════════════════════════════════════════════ */
+    .error-page {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: var(--color-bg-surface);
+      z-index: 50;
+    }
+
+    .error-page.active {
+      display: flex;
+    }
+
+    .error-content {
+      max-width: 480px;
+      text-align: center;
+      padding: var(--space-12);
+    }
+
+    .error-icon {
+      color: var(--color-neutral-400);
+      margin-bottom: var(--space-8);
+    }
+
+    .error-title {
+      font-size: var(--font-size-md);
+      font-weight: var(--font-weight-medium);
+      color: var(--color-fg-primary);
+      margin-bottom: var(--space-4);
+    }
+
+    .error-description {
+      font-size: var(--font-size-sm);
+      color: var(--color-fg-secondary);
+      margin-bottom: var(--space-4);
+    }
+
+    .error-url {
+      font-size: var(--font-size-sm);
+      color: var(--color-neutral-400);
+      word-break: break-all;
+      margin-bottom: var(--space-8);
+    }
+
+    .error-actions {
+      margin-bottom: var(--space-8);
+    }
+
+    .error-retry-btn {
+      padding: var(--space-4) var(--space-8);
+      font-size: var(--font-size-sm);
+      font-family: var(--font-family);
+      font-weight: var(--font-weight-medium);
+      color: var(--color-fg-on-brand);
+      background: var(--color-bg-brand);
+      border: none;
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      box-shadow: var(--shadow-ctrl-brand);
+    }
+
+    .error-retry-btn:hover {
+      opacity: 0.9;
+    }
+
+    .error-details {
+      text-align: left;
+      font-size: 12px;
+      color: var(--color-neutral-400);
+    }
+
+    .error-details summary {
+      cursor: pointer;
+      margin-bottom: var(--space-2);
+    }
+
+    .error-details p {
+      margin: var(--space-2) 0;
+      word-break: break-all;
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════════════
        MAIN CONTENT (New Tab Page)
        ═══════════════════════════════════════════════════════════════════════════ */
     .main-content {
@@ -594,6 +777,28 @@
       height: 100%;
       border: none;
       background: var(--color-bg-surface);
+    }
+
+    /* Electron webview specific styles */
+    webview.webview-frame {
+      display: flex;
+    }
+
+    /* macOS traffic light spacing */
+    .browser-shell {
+      /* Add padding for macOS window controls */
+      padding-top: env(titlebar-area-height, var(--space-2));
+    }
+
+    /* Drag region for window (macOS) */
+    .toolbar {
+      -webkit-app-region: drag;
+    }
+
+    .toolbar button,
+    .toolbar input,
+    .toolbar .search-bar {
+      -webkit-app-region: no-drag;
     }
 
     .ntp-sections {
@@ -1136,6 +1341,9 @@
 <body>
   <div class="browser-shell">
     <div class="browser-main">
+      <!-- Loading Bar -->
+      <div class="loading-bar" id="loading-bar"></div>
+      
       <!-- Toolbar -->
       <div class="toolbar">
         <!-- Left Area: Tab + Panel Toggle -->
@@ -1167,6 +1375,11 @@
         <button class="icon-btn icon-btn-md" title="Forward" disabled>
           <span class="icon">
             <img src="icons/Arrow Right.svg" alt="Forward">
+          </span>
+        </button>
+        <button class="icon-btn icon-btn-md" title="Reload">
+          <span class="icon">
+            <img src="icons/Refresh.svg" alt="Reload">
           </span>
         </button>
 
@@ -1209,7 +1422,8 @@
           <div class="scroll-container">
             <!-- Webview for displaying web content -->
             <div class="webview-container" id="webview-container">
-              <iframe class="webview-frame" id="webview-frame" sandbox="allow-scripts allow-same-origin allow-forms allow-popups" src="about:blank"></iframe>
+              <!-- Electron webview (replaces iframe for real browsing) -->
+              <webview class="webview-frame" id="webview-frame" src="about:blank" webpreferences="contextIsolation=yes, nodeIntegration=no" allowpopups></webview>
             </div>
             <!-- New Tab Page (shown when no URL) -->
             <div class="new-tab-page" id="new-tab-page">

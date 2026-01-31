@@ -1,0 +1,33 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+out/
+build/icon.icns
+build/icon.ico
+build/icons/
+
+# macOS
+.DS_Store
+*.DS_Store
+
+# IDE
+.vscode/
+.idea/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Environment
+.env
+.env.local
+
+# Electron
+*.dmg
+*.AppImage
+*.deb
+*.rpm
+*.exe
+*.msi

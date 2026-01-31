@@ -1,1 +1,33 @@
-{}
+{
+  "name": "browser",
+  "version": "1.0.0",
+  "description": "AI-powered browser application",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "NODE_ENV=development electron .",
+    "build": "electron-builder build",
+    "build:mac": "electron-builder build --mac",
+    "build:win": "electron-builder build --win",
+    "build:linux": "electron-builder build --linux",
+    "package": "electron-builder build --mac --win --linux",
+    "postinstall": "electron-builder install-app-deps"
+  },
+  "keywords": [
+    "browser",
+    "electron",
+    "ai"
+  ],
+  "author": "ethanwongwork",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^33.0.0",
+    "electron-builder": "^25.1.8"
+  },
+  "dependencies": {
+    "electron-store": "^10.0.0"
+  },
+  "build": {
+    "extends": null
+  }
+}

@@ -3,6 +3,9 @@
  * Connects BrowserState to the DOM without changing visual appearance
  */
 
+// Detect if running in Electron
+const isElectron = typeof window !== 'undefined' && window.electronAPI?.isElectron;
+
 const UIBindings = {
   // DOM element references
   elements: {},
@@ -14,8 +17,123 @@ const UIBindings = {
     this.cacheElements();
     this.bindEvents();
     this.subscribeToState();
-    console.log('[UI] Bindings initialized');
+    this.initWebview();
+    console.log('[UI] Bindings initialized', isElectron ? '(Electron)' : '(Browser)');
     return this;
+  },
+
+  /**
+   * Initialize webview event listeners (Electron specific)
+   */
+  initWebview() {
+    const webview = this.elements.webviewFrame;
+    if (!webview || !isElectron) return;
+
+    // Wait for webview to be ready
+    webview.addEventListener('dom-ready', () => {
+      console.log('[UI] Webview DOM ready');
+      this.updateNavigationState();
+    });
+
+    // Loading started
+    webview.addEventListener('did-start-loading', () => {
+      const tab = BrowserState.getActiveTab();
+      if (tab) {
+        BrowserState.setTabLoading(tab.id, true);
+        this.showLoadingIndicator(true);
+      }
+    });
+
+    // Loading finished
+    webview.addEventListener('did-stop-loading', () => {
+      const tab = BrowserState.getActiveTab();
+      if (tab) {
+        BrowserState.setTabLoading(tab.id, false);
+        this.showLoadingIndicator(false);
+      }
+      this.updateNavigationState();
+    });
+
+    // Navigation completed
+    webview.addEventListener('did-navigate', (e) => {
+      this.onWebviewNavigate(e.url);
+      this.hideErrorPage();
+    });
+
+    // In-page navigation (hash changes, pushState)
+    webview.addEventListener('did-navigate-in-page', (e) => {
+      if (e.isMainFrame) {
+        this.onWebviewNavigate(e.url);
+      }
+    });
+
+    // Page title updated
+    webview.addEventListener('page-title-updated', (e) => {
+      const tab = BrowserState.getActiveTab();
+      if (tab) {
+        BrowserState.updateTab(tab.id, { title: e.title });
+      }
+    });
+
+    // Page favicon updated
+    webview.addEventListener('page-favicon-updated', (e) => {
+      const tab = BrowserState.getActiveTab();
+      if (tab && e.favicons && e.favicons.length > 0) {
+        BrowserState.updateTab(tab.id, { faviconUrl: e.favicons[0] });
+      }
+    });
+
+    // Handle new window requests (open in new tab)
+    webview.addEventListener('new-window', (e) => {
+      e.preventDefault();
+      BrowserState.addTab({ url: e.url, title: 'Loading...' });
+    });
+
+    // Handle load errors
+    webview.addEventListener('did-fail-load', (e) => {
+      // Ignore aborted loads (-3) and cancelled loads (-1)
+      if (e.errorCode === -3 || e.errorCode === -1) return;
+      
+      console.log('[UI] Load failed:', e.errorCode, e.errorDescription);
+      const tab = BrowserState.getActiveTab();
+      if (tab) {
+        BrowserState.setTabLoading(tab.id, false);
+        this.showLoadingIndicator(false);
+        this.showErrorPage(e.validatedURL || tab.url, e.errorDescription, e.errorCode);
+      }
+    });
+
+    // Handle certificate errors
+    webview.addEventListener('certificate-error', (e) => {
+      console.log('[UI] Certificate error:', e);
+    });
+  },
+
+  /**
+   * Handle webview navigation events
+   */
+  onWebviewNavigate(url) {
+    const tab = BrowserState.getActiveTab();
+    if (tab) {
+      BrowserState.updateTab(tab.id, { url });
+      BrowserState.addressBar.value = url;
+      BrowserState.emit('addressBarChanged');
+      
+      // Update navigation state
+      this.updateNavigationState();
+    }
+  },
+
+  /**
+   * Update back/forward navigation state
+   */
+  updateNavigationState() {
+    const webview = this.elements.webviewFrame;
+    if (webview && isElectron && webview.canGoBack && webview.canGoForward) {
+      BrowserState.navigation.canGoBack = webview.canGoBack();
+      BrowserState.navigation.canGoForward = webview.canGoForward();
+      this.renderToolbar();
+    }
   },
 
   /**
@@ -32,6 +150,7 @@ const UIBindings = {
       newTabBtn: document.querySelector('.icon-btn[title="New Tab"]'),
       backBtn: document.querySelector('.icon-btn[title="Back"]'),
       forwardBtn: document.querySelector('.icon-btn[title="Forward"]'),
+      reloadBtn: document.querySelector('.icon-btn[title="Reload"]'),
       splitBtn: document.querySelector('.icon-btn[title="Split"]'),
       closeBtn: document.querySelector('.icon-btn[title="Close"]'),
 
@@ -83,6 +202,11 @@ const UIBindings = {
     // Forward button
     this.elements.forwardBtn?.addEventListener('click', () => {
       this.navigateForward();
+    });
+
+    // Reload button
+    this.elements.reloadBtn?.addEventListener('click', () => {
+      this.reloadPage();
     });
 
     // Address bar
@@ -160,6 +284,82 @@ const UIBindings = {
     this.elements.webviewFrame?.addEventListener('load', () => {
       this.onWebviewLoad();
     });
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', (e) => {
+      this.handleKeyboardShortcut(e);
+    });
+  },
+
+  /**
+   * Handle keyboard shortcuts
+   */
+  handleKeyboardShortcut(e) {
+    const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+    const modifier = isMac ? e.metaKey : e.ctrlKey;
+
+    // Cmd/Ctrl + F: Find in page
+    if (modifier && e.key === 'f') {
+      e.preventDefault();
+      this.openFindInPage();
+      return;
+    }
+
+    // Cmd/Ctrl + R: Reload
+    if (modifier && e.key === 'r') {
+      e.preventDefault();
+      this.reloadPage();
+      return;
+    }
+
+    // Cmd/Ctrl + L: Focus address bar
+    if (modifier && e.key === 'l') {
+      e.preventDefault();
+      this.elements.addressInput?.focus();
+      this.elements.addressInput?.select();
+      return;
+    }
+
+    // Cmd/Ctrl + T: New tab
+    if (modifier && e.key === 't') {
+      e.preventDefault();
+      BrowserState.addTab();
+      return;
+    }
+
+    // Cmd/Ctrl + W: Close tab
+    if (modifier && e.key === 'w') {
+      e.preventDefault();
+      const activeTab = BrowserState.getActiveTab();
+      if (activeTab) {
+        BrowserState.removeTab(activeTab.id);
+      }
+      return;
+    }
+
+    // Cmd/Ctrl + Shift + T: Reopen closed tab (if we track closed tabs)
+    // TODO: Implement closed tab history
+
+    // Escape: Close find bar
+    if (e.key === 'Escape') {
+      if (this.findInPage.isOpen) {
+        this.closeFindInPage();
+      }
+    }
+
+    // Alt + Left: Go back
+    if (e.altKey && e.key === 'ArrowLeft') {
+      e.preventDefault();
+      this.navigateBack();
+      return;
+    }
+
+    // Alt + Right: Go forward
+    if (e.altKey && e.key === 'ArrowRight') {
+      e.preventDefault();
+      this.navigateForward();
+      return;
+    }
   },
 
   /**
@@ -462,8 +662,15 @@ const UIBindings = {
     BrowserState.setTabLoading(tab.id, true);
 
     // Load in webview
-    if (this.elements.webviewFrame && normalizedUrl.startsWith('http')) {
-      this.elements.webviewFrame.src = normalizedUrl;
+    const webview = this.elements.webviewFrame;
+    if (webview && normalizedUrl.startsWith('http')) {
+      if (isElectron) {
+        // Electron webview uses loadURL method
+        webview.loadURL(normalizedUrl);
+      } else {
+        // Fallback for iframe
+        webview.src = normalizedUrl;
+      }
       this.elements.webviewContainer?.classList.add('active');
       this.elements.newTabPage?.classList.add('hidden');
     }
@@ -475,9 +682,12 @@ const UIBindings = {
    * Navigate back
    */
   navigateBack() {
-    if (this.elements.webviewFrame?.contentWindow) {
+    const webview = this.elements.webviewFrame;
+    if (isElectron && webview && webview.canGoBack()) {
+      webview.goBack();
+    } else if (webview?.contentWindow) {
       try {
-        this.elements.webviewFrame.contentWindow.history.back();
+        webview.contentWindow.history.back();
       } catch (e) {
         console.log('[UI] Cannot navigate back (cross-origin)');
       }
@@ -488,9 +698,12 @@ const UIBindings = {
    * Navigate forward
    */
   navigateForward() {
-    if (this.elements.webviewFrame?.contentWindow) {
+    const webview = this.elements.webviewFrame;
+    if (isElectron && webview && webview.canGoForward()) {
+      webview.goForward();
+    } else if (webview?.contentWindow) {
       try {
-        this.elements.webviewFrame.contentWindow.history.forward();
+        webview.contentWindow.history.forward();
       } catch (e) {
         console.log('[UI] Cannot navigate forward (cross-origin)');
       }
@@ -506,7 +719,13 @@ const UIBindings = {
 
     BrowserState.setTabLoading(tab.id, false);
 
-    // Try to get title from iframe
+    // For Electron, title/favicon are handled by webview events
+    if (isElectron) {
+      this.updateNavigationState();
+      return;
+    }
+
+    // Try to get title from iframe (fallback for non-Electron)
     try {
       const iframeDoc = this.elements.webviewFrame?.contentDocument;
       if (iframeDoc) {
@@ -551,8 +770,27 @@ const UIBindings = {
       return null;
     }
 
+    const webview = this.elements.webviewFrame;
+
+    // For Electron webview, use executeJavaScript
+    if (isElectron && webview) {
+      // Return a promise for async extraction
+      return webview.executeJavaScript(`
+        JSON.stringify({
+          url: window.location.href,
+          title: document.title,
+          content: document.body?.innerText?.slice(0, 5000) || ''
+        })
+      `).then(result => JSON.parse(result)).catch(() => ({
+        url: tab.url,
+        title: tab.title,
+        restricted: true
+      }));
+    }
+
+    // Fallback for iframe
     try {
-      const iframeDoc = this.elements.webviewFrame?.contentDocument;
+      const iframeDoc = webview?.contentDocument;
       if (iframeDoc) {
         return {
           url: tab.url,
@@ -578,6 +816,300 @@ const UIBindings = {
   toggleSidebar() {
     this.elements.sidebar?.classList.toggle('collapsed');
     console.log('[UI] Sidebar toggled');
+  },
+
+  /**
+   * Show/hide loading indicator
+   */
+  showLoadingIndicator(show) {
+    if (this.elements.toolbarTab) {
+      this.elements.toolbarTab.classList.toggle('loading', show);
+    }
+    // Also update the loading bar if it exists
+    const loadingBar = document.getElementById('loading-bar');
+    if (loadingBar) {
+      loadingBar.classList.toggle('active', show);
+    }
+  },
+
+  /**
+   * Show error page for failed loads
+   */
+  showErrorPage(url, errorDescription, errorCode) {
+    // Create error page if it doesn't exist
+    let errorPage = document.getElementById('error-page');
+    if (!errorPage) {
+      errorPage = document.createElement('div');
+      errorPage.id = 'error-page';
+      errorPage.className = 'error-page';
+      this.elements.webviewContainer?.parentElement?.appendChild(errorPage);
+    }
+
+    // Get user-friendly error message
+    const friendlyMessage = this.getErrorMessage(errorCode, errorDescription);
+
+    errorPage.innerHTML = `
+      <div class="error-content">
+        <div class="error-icon">
+          <svg width="64" height="64" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+            <path d="M12 8v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <circle cx="12" cy="16" r="1" fill="currentColor"/>
+          </svg>
+        </div>
+        <h1 class="error-title">${friendlyMessage.title}</h1>
+        <p class="error-description">${friendlyMessage.description}</p>
+        <p class="error-url">${this.escapeHtml(url)}</p>
+        <div class="error-actions">
+          <button class="error-retry-btn" onclick="UIBindings.retryNavigation()">Try again</button>
+        </div>
+        <details class="error-details">
+          <summary>Technical details</summary>
+          <p>Error code: ${errorCode}</p>
+          <p>${this.escapeHtml(errorDescription)}</p>
+        </details>
+      </div>
+    `;
+
+    errorPage.classList.add('active');
+    this.elements.webviewContainer?.classList.remove('active');
+  },
+
+  /**
+   * Hide error page
+   */
+  hideErrorPage() {
+    const errorPage = document.getElementById('error-page');
+    if (errorPage) {
+      errorPage.classList.remove('active');
+    }
+  },
+
+  /**
+   * Get user-friendly error message
+   */
+  getErrorMessage(errorCode, errorDescription) {
+    const messages = {
+      '-2': { title: 'Network error', description: 'Unable to connect. Check your internet connection.' },
+      '-3': { title: 'Aborted', description: 'The page load was cancelled.' },
+      '-6': { title: 'File not found', description: 'The requested file could not be found.' },
+      '-7': { title: 'Timed out', description: 'The connection timed out. Try again later.' },
+      '-10': { title: 'Access denied', description: 'Access to this resource was denied.' },
+      '-21': { title: 'Network changed', description: 'Network connection changed during loading.' },
+      '-100': { title: 'Connection closed', description: 'The connection was closed unexpectedly.' },
+      '-101': { title: 'Connection reset', description: 'The connection was reset.' },
+      '-102': { title: 'Connection refused', description: 'The server refused the connection.' },
+      '-103': { title: 'Connection failed', description: 'Unable to establish a connection.' },
+      '-104': { title: 'Name not resolved', description: 'The server name could not be found.' },
+      '-105': { title: 'DNS error', description: 'Unable to resolve the DNS address.' },
+      '-106': { title: 'Internet disconnected', description: 'You appear to be offline.' },
+      '-118': { title: 'Connection timed out', description: 'The connection timed out.' },
+      '-200': { title: 'Certificate error', description: 'There is a problem with the site\'s security certificate.' },
+      '-201': { title: 'Certificate date invalid', description: 'The site\'s security certificate has expired.' },
+      '-202': { title: 'Certificate authority invalid', description: 'The certificate is not from a trusted authority.' },
+    };
+
+    return messages[errorCode.toString()] || {
+      title: 'Page failed to load',
+      description: errorDescription || 'An unknown error occurred.'
+    };
+  },
+
+  /**
+   * Retry navigation to the current URL
+   */
+  retryNavigation() {
+    const tab = BrowserState.getActiveTab();
+    if (tab && tab.url) {
+      this.hideErrorPage();
+      this.navigateToUrl(tab.url);
+    }
+  },
+
+  /**
+   * Reload the current page
+   */
+  reloadPage() {
+    const webview = this.elements.webviewFrame;
+    if (isElectron && webview) {
+      webview.reload();
+    } else if (webview) {
+      webview.src = webview.src;
+    }
+  },
+
+  /**
+   * Stop loading the current page
+   */
+  stopLoading() {
+    const webview = this.elements.webviewFrame;
+    if (isElectron && webview) {
+      webview.stop();
+    }
+    this.showLoadingIndicator(false);
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // FIND IN PAGE
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  findInPage: {
+    isOpen: false,
+    query: '',
+    currentMatch: 0,
+    totalMatches: 0
+  },
+
+  /**
+   * Open find-in-page dialog
+   */
+  openFindInPage() {
+    this.findInPage.isOpen = true;
+    this.renderFindBar();
+    
+    const findInput = document.getElementById('find-input');
+    findInput?.focus();
+    findInput?.select();
+  },
+
+  /**
+   * Close find-in-page dialog
+   */
+  closeFindInPage() {
+    this.findInPage.isOpen = false;
+    this.findInPage.query = '';
+    this.findInPage.currentMatch = 0;
+    this.findInPage.totalMatches = 0;
+    
+    // Stop find in webview
+    const webview = this.elements.webviewFrame;
+    if (isElectron && webview) {
+      webview.stopFindInPage('clearSelection');
+    }
+    
+    // Remove find bar
+    const findBar = document.getElementById('find-bar');
+    if (findBar) {
+      findBar.remove();
+    }
+  },
+
+  /**
+   * Render find-in-page bar
+   */
+  renderFindBar() {
+    // Remove existing find bar
+    let findBar = document.getElementById('find-bar');
+    if (!findBar) {
+      findBar = document.createElement('div');
+      findBar.id = 'find-bar';
+      findBar.className = 'find-bar';
+      this.elements.toolbar?.parentElement?.insertBefore(findBar, this.elements.toolbar.nextSibling);
+    }
+
+    findBar.innerHTML = `
+      <div class="find-bar-content">
+        <input type="text" id="find-input" class="find-input" placeholder="Find in page" value="${this.escapeHtml(this.findInPage.query)}">
+        <span class="find-matches">${this.findInPage.totalMatches > 0 ? `${this.findInPage.currentMatch}/${this.findInPage.totalMatches}` : ''}</span>
+        <button class="find-btn find-prev" title="Previous match">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 4l-4 4h8l-4-4z"/></svg>
+        </button>
+        <button class="find-btn find-next" title="Next match">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 12l4-4H4l4 4z"/></svg>
+        </button>
+        <button class="find-btn find-close" title="Close">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z"/></svg>
+        </button>
+      </div>
+    `;
+
+    // Bind events
+    const findInput = findBar.querySelector('#find-input');
+    findInput?.addEventListener('input', (e) => {
+      this.findInPage.query = e.target.value;
+      this.executeFind();
+    });
+    findInput?.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        if (e.shiftKey) {
+          this.findPrevious();
+        } else {
+          this.findNext();
+        }
+      } else if (e.key === 'Escape') {
+        this.closeFindInPage();
+      }
+    });
+
+    findBar.querySelector('.find-prev')?.addEventListener('click', () => this.findPrevious());
+    findBar.querySelector('.find-next')?.addEventListener('click', () => this.findNext());
+    findBar.querySelector('.find-close')?.addEventListener('click', () => this.closeFindInPage());
+  },
+
+  /**
+   * Execute find in webview
+   */
+  executeFind() {
+    const webview = this.elements.webviewFrame;
+    if (!isElectron || !webview || !this.findInPage.query) {
+      this.findInPage.currentMatch = 0;
+      this.findInPage.totalMatches = 0;
+      this.updateFindMatches();
+      return;
+    }
+
+    webview.findInPage(this.findInPage.query)
+      .then(result => {
+        this.findInPage.currentMatch = result.activeMatchOrdinal;
+        this.findInPage.totalMatches = result.matches;
+        this.updateFindMatches();
+      })
+      .catch(err => {
+        console.log('[UI] Find error:', err);
+      });
+  },
+
+  /**
+   * Find next match
+   */
+  findNext() {
+    const webview = this.elements.webviewFrame;
+    if (!isElectron || !webview || !this.findInPage.query) return;
+
+    webview.findInPage(this.findInPage.query, { forward: true, findNext: true })
+      .then(result => {
+        this.findInPage.currentMatch = result.activeMatchOrdinal;
+        this.findInPage.totalMatches = result.matches;
+        this.updateFindMatches();
+      });
+  },
+
+  /**
+   * Find previous match
+   */
+  findPrevious() {
+    const webview = this.elements.webviewFrame;
+    if (!isElectron || !webview || !this.findInPage.query) return;
+
+    webview.findInPage(this.findInPage.query, { forward: false, findNext: true })
+      .then(result => {
+        this.findInPage.currentMatch = result.activeMatchOrdinal;
+        this.findInPage.totalMatches = result.matches;
+        this.updateFindMatches();
+      });
+  },
+
+  /**
+   * Update find matches display
+   */
+  updateFindMatches() {
+    const matchesEl = document.querySelector('.find-matches');
+    if (matchesEl) {
+      matchesEl.textContent = this.findInPage.totalMatches > 0 
+        ? `${this.findInPage.currentMatch}/${this.findInPage.totalMatches}` 
+        : '';
+    }
   },
 
   /**
@@ -623,9 +1155,15 @@ const UIBindings = {
     this.render();
     
     // Navigate to URL if tab has one
-    if (tab?.url && tab.url.startsWith('http')) {
-      if (this.elements.webviewFrame?.src !== tab.url) {
-        this.elements.webviewFrame.src = tab.url;
+    const webview = this.elements.webviewFrame;
+    if (tab?.url && tab.url.startsWith('http') && webview) {
+      const currentUrl = isElectron ? webview.getURL?.() : webview.src;
+      if (currentUrl !== tab.url) {
+        if (isElectron) {
+          webview.loadURL(tab.url);
+        } else {
+          webview.src = tab.url;
+        }
       }
     }
   },
