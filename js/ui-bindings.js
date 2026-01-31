@@ -454,11 +454,29 @@ const UIBindings = {
     // Clear existing tab items (keep structure)
     this.elements.sidebar.innerHTML = '';
 
-    // Render each tab
-    tabs.forEach(tab => {
+    // Separate pinned and unpinned tabs
+    const pinnedTabs = tabs.filter(t => t.isPinned);
+    const unpinnedTabs = tabs.filter(t => !t.isPinned);
+
+    // Render pinned tabs first
+    if (pinnedTabs.length > 0) {
+      const pinnedContainer = document.createElement('div');
+      pinnedContainer.className = 'sidebar-pinned-tabs';
+      pinnedTabs.forEach(tab => {
+        const tabItem = this.createSidebarTabItem(tab);
+        pinnedContainer.appendChild(tabItem);
+      });
+      this.elements.sidebar.appendChild(pinnedContainer);
+    }
+
+    // Render unpinned tabs
+    unpinnedTabs.forEach(tab => {
       const tabItem = this.createSidebarTabItem(tab);
       this.elements.sidebar.appendChild(tabItem);
     });
+
+    // Update overflow indicator
+    this.updateTabOverflow();
   },
 
   /**
@@ -466,18 +484,27 @@ const UIBindings = {
    */
   createSidebarTabItem(tab) {
     const isActive = tab.id === BrowserState.activeTabId;
+    const isPinned = tab.isPinned;
     
     const item = document.createElement('div');
-    item.className = `sidebar-tab-item${isActive ? ' active' : ''}`;
+    item.className = `sidebar-tab-item${isActive ? ' active' : ''}${isPinned ? ' pinned' : ''}`;
     item.dataset.tabId = tab.id;
+    item.draggable = true;
 
-    item.innerHTML = `
-      <div class="favicon favicon-${tab.favicon || 'wikipedia'}"></div>
-      <span class="tab-item-title">${this.escapeHtml(tab.title)}</span>
-      <button class="tab-close-btn" title="Close tab">
-        <img src="icons/Dismiss.svg" alt="Close">
-      </button>
-    `;
+    if (isPinned) {
+      // Pinned tabs show only favicon
+      item.innerHTML = `
+        <div class="favicon favicon-${tab.favicon || 'wikipedia'}" title="${this.escapeHtml(tab.title)}"></div>
+      `;
+    } else {
+      item.innerHTML = `
+        <div class="favicon favicon-${tab.favicon || 'wikipedia'}"></div>
+        <span class="tab-item-title">${this.escapeHtml(tab.title)}</span>
+        <button class="tab-close-btn" title="Close tab">
+          <img src="icons/Dismiss.svg" alt="Close">
+        </button>
+      `;
+    }
 
     // Click to activate tab
     item.addEventListener('click', (e) => {
@@ -486,14 +513,287 @@ const UIBindings = {
       }
     });
 
-    // Close button
+    // Middle-click to close tab
+    item.addEventListener('mousedown', (e) => {
+      if (e.button === 1) { // Middle mouse button
+        e.preventDefault();
+        BrowserState.removeTab(tab.id);
+      }
+    });
+
+    // Right-click context menu
+    item.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+      this.showTabContextMenu(e, tab);
+    });
+
+    // Close button (only for unpinned tabs)
     const closeBtn = item.querySelector('.tab-close-btn');
     closeBtn?.addEventListener('click', (e) => {
       e.stopPropagation();
       BrowserState.removeTab(tab.id);
     });
 
+    // Drag and drop handlers
+    item.addEventListener('dragstart', (e) => this.onTabDragStart(e, tab));
+    item.addEventListener('dragover', (e) => this.onTabDragOver(e));
+    item.addEventListener('dragenter', (e) => this.onTabDragEnter(e));
+    item.addEventListener('dragleave', (e) => this.onTabDragLeave(e));
+    item.addEventListener('drop', (e) => this.onTabDrop(e, tab));
+    item.addEventListener('dragend', (e) => this.onTabDragEnd(e));
+
+    // Hover preview
+    item.addEventListener('mouseenter', (e) => this.showTabPreview(e, tab));
+    item.addEventListener('mouseleave', () => this.hideTabPreview());
+
     return item;
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // TAB DRAG AND DROP
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  draggedTab: null,
+
+  onTabDragStart(e, tab) {
+    this.draggedTab = tab;
+    e.target.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', tab.id);
+  },
+
+  onTabDragOver(e) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  },
+
+  onTabDragEnter(e) {
+    const tabItem = e.target.closest('.sidebar-tab-item');
+    if (tabItem && !tabItem.classList.contains('dragging')) {
+      tabItem.classList.add('drag-over');
+    }
+  },
+
+  onTabDragLeave(e) {
+    const tabItem = e.target.closest('.sidebar-tab-item');
+    if (tabItem) {
+      tabItem.classList.remove('drag-over');
+    }
+  },
+
+  onTabDrop(e, targetTab) {
+    e.preventDefault();
+    const tabItem = e.target.closest('.sidebar-tab-item');
+    if (tabItem) {
+      tabItem.classList.remove('drag-over');
+    }
+
+    if (!this.draggedTab || this.draggedTab.id === targetTab.id) return;
+
+    // Reorder tabs in state
+    BrowserState.reorderTab(this.draggedTab.id, targetTab.id);
+  },
+
+  onTabDragEnd(e) {
+    e.target.classList.remove('dragging');
+    this.draggedTab = null;
+    
+    // Clean up any remaining drag-over classes
+    document.querySelectorAll('.sidebar-tab-item.drag-over').forEach(el => {
+      el.classList.remove('drag-over');
+    });
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // TAB CONTEXT MENU
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  showTabContextMenu(e, tab) {
+    // Remove any existing context menu
+    this.hideContextMenu();
+
+    const menu = document.createElement('div');
+    menu.className = 'context-menu';
+    menu.id = 'tab-context-menu';
+
+    const isPinned = tab.isPinned;
+
+    menu.innerHTML = `
+      <div class="context-menu-item" data-action="close">
+        <span>Close Tab</span>
+        <span class="shortcut">${navigator.platform.includes('Mac') ? '⌘W' : 'Ctrl+W'}</span>
+      </div>
+      <div class="context-menu-item" data-action="close-others">
+        <span>Close Other Tabs</span>
+      </div>
+      <div class="context-menu-item" data-action="close-right">
+        <span>Close Tabs to the Right</span>
+      </div>
+      <div class="context-menu-divider"></div>
+      <div class="context-menu-item" data-action="duplicate">
+        <span>Duplicate Tab</span>
+      </div>
+      <div class="context-menu-item" data-action="pin">
+        <span>${isPinned ? 'Unpin Tab' : 'Pin Tab'}</span>
+      </div>
+      <div class="context-menu-divider"></div>
+      <div class="context-menu-item" data-action="reload">
+        <span>Reload Tab</span>
+        <span class="shortcut">${navigator.platform.includes('Mac') ? '⌘R' : 'Ctrl+R'}</span>
+      </div>
+    `;
+
+    // Position menu
+    menu.style.left = `${e.clientX}px`;
+    menu.style.top = `${e.clientY}px`;
+
+    // Handle menu item clicks
+    menu.addEventListener('click', (event) => {
+      const item = event.target.closest('.context-menu-item');
+      if (!item) return;
+
+      const action = item.dataset.action;
+      this.handleTabContextAction(action, tab);
+      this.hideContextMenu();
+    });
+
+    document.body.appendChild(menu);
+
+    // Adjust position if menu goes off screen
+    const rect = menu.getBoundingClientRect();
+    if (rect.right > window.innerWidth) {
+      menu.style.left = `${window.innerWidth - rect.width - 10}px`;
+    }
+    if (rect.bottom > window.innerHeight) {
+      menu.style.top = `${window.innerHeight - rect.height - 10}px`;
+    }
+
+    // Close menu on click outside or escape
+    const closeHandler = (event) => {
+      if (!menu.contains(event.target)) {
+        this.hideContextMenu();
+        document.removeEventListener('click', closeHandler);
+        document.removeEventListener('keydown', escHandler);
+      }
+    };
+    const escHandler = (event) => {
+      if (event.key === 'Escape') {
+        this.hideContextMenu();
+        document.removeEventListener('click', closeHandler);
+        document.removeEventListener('keydown', escHandler);
+      }
+    };
+
+    setTimeout(() => {
+      document.addEventListener('click', closeHandler);
+      document.addEventListener('keydown', escHandler);
+    }, 0);
+  },
+
+  hideContextMenu() {
+    const menu = document.getElementById('tab-context-menu');
+    if (menu) {
+      menu.remove();
+    }
+  },
+
+  handleTabContextAction(action, tab) {
+    switch (action) {
+      case 'close':
+        BrowserState.removeTab(tab.id);
+        break;
+      case 'close-others':
+        BrowserState.closeOtherTabs(tab.id);
+        break;
+      case 'close-right':
+        BrowserState.closeTabsToRight(tab.id);
+        break;
+      case 'duplicate':
+        BrowserState.duplicateTab(tab.id);
+        break;
+      case 'pin':
+        BrowserState.togglePinTab(tab.id);
+        break;
+      case 'reload':
+        if (tab.id === BrowserState.activeTabId) {
+          this.reloadPage();
+        }
+        break;
+    }
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // TAB PREVIEW
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  previewTimeout: null,
+
+  showTabPreview(e, tab) {
+    // Only show preview for tabs with URLs
+    if (!tab.url || !tab.url.startsWith('http')) return;
+
+    // Clear any existing timeout
+    if (this.previewTimeout) {
+      clearTimeout(this.previewTimeout);
+    }
+
+    // Delay showing preview
+    this.previewTimeout = setTimeout(() => {
+      this.renderTabPreview(e, tab);
+    }, 500);
+  },
+
+  renderTabPreview(e, tab) {
+    // Remove any existing preview
+    this.hideTabPreview();
+
+    const preview = document.createElement('div');
+    preview.className = 'tab-preview';
+    preview.id = 'tab-preview';
+
+    preview.innerHTML = `
+      <div class="tab-preview-title">${this.escapeHtml(tab.title)}</div>
+      <div class="tab-preview-url">${this.escapeHtml(tab.url)}</div>
+    `;
+
+    // Position preview to the right of the sidebar
+    const tabItem = e.target.closest('.sidebar-tab-item');
+    if (tabItem) {
+      const rect = tabItem.getBoundingClientRect();
+      preview.style.left = `${rect.right + 8}px`;
+      preview.style.top = `${rect.top}px`;
+    }
+
+    document.body.appendChild(preview);
+
+    // Adjust if off screen
+    const previewRect = preview.getBoundingClientRect();
+    if (previewRect.bottom > window.innerHeight) {
+      preview.style.top = `${window.innerHeight - previewRect.height - 10}px`;
+    }
+  },
+
+  hideTabPreview() {
+    if (this.previewTimeout) {
+      clearTimeout(this.previewTimeout);
+      this.previewTimeout = null;
+    }
+    const preview = document.getElementById('tab-preview');
+    if (preview) {
+      preview.remove();
+    }
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // TAB OVERFLOW
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  updateTabOverflow() {
+    const sidebar = this.elements.sidebar;
+    if (!sidebar) return;
+
+    const hasOverflow = sidebar.scrollHeight > sidebar.clientHeight;
+    sidebar.classList.toggle('has-overflow', hasOverflow);
   },
 
   /**

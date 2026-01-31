@@ -248,6 +248,122 @@ const BrowserState = {
   },
 
   /**
+   * Close all tabs except the specified one
+   * @param {string} keepTabId - The tab to keep open
+   */
+  closeOtherTabs(keepTabId) {
+    const tabsToClose = this.tabs.filter(t => t.id !== keepTabId);
+    tabsToClose.forEach(tab => {
+      const index = this.tabs.findIndex(t => t.id === tab.id);
+      if (index !== -1) {
+        this.tabs.splice(index, 1);
+      }
+    });
+    
+    // Make sure the kept tab is active
+    this.setActiveTab(keepTabId);
+    
+    this.saveTabs();
+    this.emit('stateChanged');
+  },
+
+  /**
+   * Close all tabs to the right of the specified tab
+   * @param {string} tabId
+   */
+  closeTabsToRight(tabId) {
+    const index = this.tabs.findIndex(t => t.id === tabId);
+    if (index === -1) return;
+
+    const tabsToClose = this.tabs.slice(index + 1);
+    this.tabs = this.tabs.slice(0, index + 1);
+
+    // If active tab was closed, activate the reference tab
+    if (!this.tabs.find(t => t.id === this.activeTabId)) {
+      this.setActiveTab(tabId);
+    }
+
+    this.saveTabs();
+    this.emit('stateChanged');
+  },
+
+  /**
+   * Duplicate a tab
+   * @param {string} tabId
+   * @returns {Object} The new duplicated tab
+   */
+  duplicateTab(tabId) {
+    const sourceTab = this.getTab(tabId);
+    if (!sourceTab) return null;
+
+    const newTab = this.createTab({
+      title: sourceTab.title,
+      url: sourceTab.url,
+      favicon: sourceTab.favicon
+    });
+
+    // Insert after the source tab
+    const index = this.tabs.findIndex(t => t.id === tabId);
+    this.tabs.splice(index + 1, 0, newTab);
+
+    this.setActiveTab(newTab.id);
+    this.saveTabs();
+    this.emit('tabAdded', newTab);
+    this.emit('stateChanged');
+    
+    return newTab;
+  },
+
+  /**
+   * Toggle pin state of a tab
+   * @param {string} tabId
+   */
+  togglePinTab(tabId) {
+    const tab = this.getTab(tabId);
+    if (!tab) return;
+
+    tab.isPinned = !tab.isPinned;
+
+    // Reorder: pinned tabs go to the front
+    if (tab.isPinned) {
+      const index = this.tabs.findIndex(t => t.id === tabId);
+      this.tabs.splice(index, 1);
+      
+      // Find the last pinned tab and insert after it
+      const lastPinnedIndex = this.tabs.reduce((acc, t, i) => t.isPinned ? i : acc, -1);
+      this.tabs.splice(lastPinnedIndex + 1, 0, tab);
+    }
+
+    this.saveTabs();
+    this.emit('stateChanged');
+  },
+
+  /**
+   * Reorder a tab (move draggedTabId before targetTabId)
+   * @param {string} draggedTabId
+   * @param {string} targetTabId
+   */
+  reorderTab(draggedTabId, targetTabId) {
+    const draggedIndex = this.tabs.findIndex(t => t.id === draggedTabId);
+    const targetIndex = this.tabs.findIndex(t => t.id === targetTabId);
+    
+    if (draggedIndex === -1 || targetIndex === -1) return;
+
+    // Don't allow moving pinned to unpinned section or vice versa
+    const draggedTab = this.tabs[draggedIndex];
+    const targetTab = this.tabs[targetIndex];
+    if (draggedTab.isPinned !== targetTab.isPinned) return;
+
+    // Remove and re-insert
+    const [removed] = this.tabs.splice(draggedIndex, 1);
+    const newTargetIndex = this.tabs.findIndex(t => t.id === targetTabId);
+    this.tabs.splice(newTargetIndex, 0, removed);
+
+    this.saveTabs();
+    this.emit('stateChanged');
+  },
+
+  /**
    * Sets the active tab
    * @param {string} tabId
    */

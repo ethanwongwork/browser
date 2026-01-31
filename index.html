@@ -522,6 +522,133 @@
       border-right: none;
     }
 
+    /* Pinned tabs container */
+    .sidebar-pinned-tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-2);
+      padding-bottom: var(--space-4);
+      margin-bottom: var(--space-4);
+      border-bottom: var(--stroke-width-default) solid var(--color-border-default);
+    }
+
+    /* Pinned tab style */
+    .sidebar-tab-item.pinned {
+      width: 40px;
+      height: 40px;
+      padding: 10px;
+      justify-content: center;
+    }
+
+    .sidebar-tab-item.pinned .favicon {
+      margin: 0;
+    }
+
+    /* Drag and drop states */
+    .sidebar-tab-item.dragging {
+      opacity: 0.5;
+    }
+
+    .sidebar-tab-item.drag-over {
+      background: var(--color-bg-active);
+      box-shadow: inset 0 -2px 0 0 var(--color-fg-primary);
+    }
+
+    /* Tab overflow scroll */
+    .sidebar.has-overflow {
+      overflow-y: auto;
+    }
+
+    .sidebar.has-overflow::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .sidebar.has-overflow::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    .sidebar.has-overflow::-webkit-scrollbar-thumb {
+      background: var(--color-neutral-250);
+      border-radius: 3px;
+    }
+
+    .sidebar.has-overflow::-webkit-scrollbar-thumb:hover {
+      background: var(--color-neutral-400);
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════════════
+       CONTEXT MENU
+       ═══════════════════════════════════════════════════════════════════════════ */
+    .context-menu {
+      position: fixed;
+      background: var(--color-bg-surface);
+      border: var(--stroke-width-default) solid var(--color-border-default);
+      border-radius: var(--radius-md);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      min-width: 200px;
+      padding: var(--space-2);
+      z-index: 1000;
+    }
+
+    .context-menu-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: var(--space-4) var(--space-4);
+      font-size: var(--font-size-sm);
+      color: var(--color-fg-primary);
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+    }
+
+    .context-menu-item:hover {
+      background: var(--color-bg-hover);
+    }
+
+    .context-menu-item .shortcut {
+      font-size: 12px;
+      color: var(--color-fg-tertiary);
+    }
+
+    .context-menu-divider {
+      height: 1px;
+      background: var(--color-border-default);
+      margin: var(--space-2) 0;
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════════════
+       TAB PREVIEW TOOLTIP
+       ═══════════════════════════════════════════════════════════════════════════ */
+    .tab-preview {
+      position: fixed;
+      background: var(--color-bg-surface);
+      border: var(--stroke-width-default) solid var(--color-border-default);
+      border-radius: var(--radius-md);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      padding: var(--space-4);
+      max-width: 300px;
+      z-index: 1000;
+      pointer-events: none;
+    }
+
+    .tab-preview-title {
+      font-size: var(--font-size-sm);
+      font-weight: var(--font-weight-medium);
+      color: var(--color-fg-primary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-bottom: var(--space-2);
+    }
+
+    .tab-preview-url {
+      font-size: 12px;
+      color: var(--color-fg-tertiary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
     /* Loading state for toolbar tab */
     .toolbar-tab.loading .tab-title::after {
       content: '...';
