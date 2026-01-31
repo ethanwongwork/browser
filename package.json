@@ -11,6 +11,9 @@
     "build:win": "electron-builder build --win",
     "build:linux": "electron-builder build --linux",
     "package": "electron-builder build --mac --win --linux",
+    "package:mac": "electron-builder build --mac -p never",
+    "package:win": "electron-builder build --win -p never",
+    "release": "electron-builder build --mac --win -p always",
     "postinstall": "electron-builder install-app-deps"
   },
   "keywords": [
@@ -25,7 +28,8 @@
     "electron-builder": "^25.1.8"
   },
   "dependencies": {
-    "electron-store": "^10.0.0"
+    "electron-store": "^10.0.0",
+    "electron-updater": "^6.3.9"
   },
   "build": {
     "extends": null

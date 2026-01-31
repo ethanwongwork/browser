@@ -301,16 +301,29 @@ Implement Settings:
 
 ---
 
-### Phase 7: Polish & Performance
+### Phase 7: Polish & Performance ✅
 **Goal**: Production-ready application
 
 #### Tasks:
-- [ ] Keyboard shortcut help overlay
-- [ ] Accessibility audit (ARIA labels, focus management)
-- [ ] Performance optimization (lazy loading, caching)
-- [ ] Error boundaries and crash recovery
-- [ ] Auto-update mechanism
-- [ ] Installer/DMG creation
+- [x] Keyboard shortcut help overlay
+- [x] Accessibility audit (ARIA labels, focus management)
+- [x] Performance optimization (lazy loading, caching)
+- [x] Error boundaries and crash recovery
+- [x] Auto-update mechanism
+- [x] Installer/DMG creation
+
+#### Completed:
+- Keyboard shortcuts help modal (Cmd/Ctrl + / or ?)
+- ARIA labels on toolbar, sidebar, main content, webview
+- Skip link for keyboard navigation
+- Focus-visible styles for all interactive elements
+- Reduced motion media query support
+- High contrast mode support
+- Global error handler with crash recovery UI
+- Auto-updater setup with electron-updater
+- Update download progress and install prompts
+- package.json release/package scripts
+- macOS entitlements for hardened runtime
 
 ---
 

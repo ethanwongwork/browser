@@ -2445,16 +2445,121 @@
     [data-theme="dark"] .loading-bar {
       background: linear-gradient(90deg, transparent, #4a9eff, transparent);
     }
+
+    /* ═══════════════════════════════════════════════════════════════════════════
+       KEYBOARD SHORTCUTS MODAL
+       ═══════════════════════════════════════════════════════════════════════════ */
+    .shortcuts-modal {
+      max-width: 600px;
+    }
+
+    .shortcuts-body {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: var(--space-8);
+    }
+
+    .shortcuts-category h3 {
+      font-size: var(--font-size-sm);
+      font-weight: var(--font-weight-semibold);
+      color: var(--color-fg-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin: 0 0 var(--space-4) 0;
+    }
+
+    .shortcuts-list {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-3);
+    }
+
+    .shortcut-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-4);
+    }
+
+    .shortcut-keys {
+      font-family: var(--font-family);
+      font-size: var(--font-size-xs);
+      background: var(--color-bg-secondary);
+      border: var(--stroke-width-default) solid var(--color-border-default);
+      border-radius: var(--radius-sm);
+      padding: var(--space-1) var(--space-3);
+      color: var(--color-fg-primary);
+      white-space: nowrap;
+    }
+
+    .shortcut-action {
+      font-size: var(--font-size-sm);
+      color: var(--color-fg-primary);
+      text-align: right;
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════════════
+       ACCESSIBILITY - FOCUS STYLES
+       ═══════════════════════════════════════════════════════════════════════════ */
+    :focus-visible {
+      outline: 2px solid var(--color-fg-primary);
+      outline-offset: 2px;
+    }
+
+    .icon-btn:focus-visible,
+    .btn:focus-visible {
+      outline: 2px solid var(--color-fg-primary);
+      outline-offset: 2px;
+    }
+
+    /* Skip link for accessibility */
+    .skip-link {
+      position: absolute;
+      top: -100px;
+      left: 0;
+      background: var(--color-bg-brand);
+      color: var(--color-fg-on-brand);
+      padding: var(--space-4) var(--space-8);
+      z-index: 9999;
+      text-decoration: none;
+      font-weight: var(--font-weight-medium);
+    }
+
+    .skip-link:focus {
+      top: 0;
+    }
+
+    /* Reduced motion preference */
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+
+    /* High contrast mode support */
+    @media (prefers-contrast: high) {
+      :root {
+        --color-border-default: #000000;
+        --color-fg-secondary: #333333;
+      }
+    }
   </style>
 </head>
 <body>
-  <div class="browser-shell">
+  <!-- Skip link for keyboard users -->
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+  
+  <div class="browser-shell" role="application" aria-label="Web Browser">
     <div class="browser-main">
       <!-- Loading Bar -->
-      <div class="loading-bar" id="loading-bar"></div>
+      <div class="loading-bar" id="loading-bar" role="progressbar" aria-label="Page loading"></div>
       
       <!-- Toolbar -->
-      <div class="toolbar">
+      <div class="toolbar" role="toolbar" aria-label="Browser toolbar">
         <!-- Left Area: Tab + Panel Toggle -->
         <div class="toolbar-left">
           <div class="toolbar-tab">
@@ -2527,20 +2632,20 @@
       <!-- Content Area -->
       <div class="content-area">
         <!-- Sidebar (Tabs) - dynamically populated -->
-        <div class="sidebar">
+        <div class="sidebar" role="navigation" aria-label="Tabs">
         </div>
 
         <!-- Main Content -->
-        <div class="main-content">
+        <div class="main-content" id="main-content" role="main">
           <!-- Scroll Container (with scrollbar) -->
           <div class="scroll-container">
             <!-- Webview for displaying web content -->
             <div class="webview-container" id="webview-container">
               <!-- Electron webview (replaces iframe for real browsing) -->
-              <webview class="webview-frame" id="webview-frame" src="about:blank" webpreferences="contextIsolation=yes, nodeIntegration=no" allowpopups></webview>
+              <webview class="webview-frame" id="webview-frame" src="about:blank" webpreferences="contextIsolation=yes, nodeIntegration=no" allowpopups aria-label="Web page content"></webview>
             </div>
             <!-- New Tab Page (shown when no URL) -->
-            <div class="new-tab-page" id="new-tab-page">
+            <div class="new-tab-page" id="new-tab-page" role="region" aria-label="New tab page">
               <div class="ntp-sections">
                 <!-- Favorites Section -->
                 <div class="section">

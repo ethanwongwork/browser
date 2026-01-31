@@ -10,16 +10,84 @@ const UIBindings = {
   // DOM element references
   elements: {},
 
+  // Error tracking
+  _errorCount: 0,
+  _maxErrors: 10,
+
   /**
-   * Initialize UI bindings
+   * Initialize UI bindings with error boundary
    */
   init() {
-    this.cacheElements();
-    this.bindEvents();
-    this.subscribeToState();
-    this.initWebview();
-    console.log('[UI] Bindings initialized', isElectron ? '(Electron)' : '(Browser)');
+    try {
+      this.cacheElements();
+      this.bindEvents();
+      this.subscribeToState();
+      this.initWebview();
+      this.setupGlobalErrorHandler();
+      console.log('[UI] Bindings initialized', isElectron ? '(Electron)' : '(Browser)');
+    } catch (error) {
+      this.handleFatalError(error);
+    }
     return this;
+  },
+
+  /**
+   * Setup global error handler
+   */
+  setupGlobalErrorHandler() {
+    window.onerror = (message, source, lineno, colno, error) => {
+      console.error('[UI] Global error:', { message, source, lineno, colno, error });
+      this._errorCount++;
+      
+      if (this._errorCount >= this._maxErrors) {
+        this.showCrashRecovery();
+      }
+      
+      return false; // Don't suppress the error
+    };
+
+    window.onunhandledrejection = (event) => {
+      console.error('[UI] Unhandled promise rejection:', event.reason);
+      this._errorCount++;
+    };
+  },
+
+  /**
+   * Handle fatal initialization errors
+   */
+  handleFatalError(error) {
+    console.error('[UI] Fatal error during initialization:', error);
+    document.body.innerHTML = `
+      <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; font-family: system-ui, sans-serif; padding: 20px; text-align: center;">
+        <h1 style="margin-bottom: 16px; color: #ef4444;">Something went wrong</h1>
+        <p style="margin-bottom: 24px; color: #666;">The browser encountered an error during initialization.</p>
+        <pre style="background: #f5f5f5; padding: 16px; border-radius: 8px; margin-bottom: 24px; max-width: 600px; overflow: auto; text-align: left;">${error.stack || error.message}</pre>
+        <button onclick="location.reload()" style="background: #3a3632; color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-size: 14px;">Reload</button>
+      </div>
+    `;
+  },
+
+  /**
+   * Show crash recovery UI
+   */
+  showCrashRecovery() {
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay';
+    modal.style.zIndex = '9999';
+    modal.innerHTML = `
+      <div class="modal-content" style="max-width: 400px; text-align: center;">
+        <div class="modal-body" style="padding: 24px;">
+          <h2 style="margin-bottom: 16px;">Browser has encountered issues</h2>
+          <p style="margin-bottom: 24px; color: var(--color-fg-secondary);">Multiple errors have occurred. You can try recovering your session or reload the browser.</p>
+          <div style="display: flex; gap: 12px; justify-content: center;">
+            <button class="btn btn-secondary" onclick="this.closest('.modal-overlay').remove()">Dismiss</button>
+            <button class="btn btn-primary" onclick="location.reload()">Reload Browser</button>
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+    this._errorCount = 0; // Reset counter
   },
 
   /**
@@ -318,6 +386,20 @@ const UIBindings = {
   handleKeyboardShortcut(e) {
     const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
     const modifier = isMac ? e.metaKey : e.ctrlKey;
+
+    // Cmd/Ctrl + ? or Cmd/Ctrl + /: Show keyboard shortcuts help
+    if (modifier && (e.key === '?' || e.key === '/')) {
+      e.preventDefault();
+      this.showKeyboardShortcuts();
+      return;
+    }
+
+    // Cmd/Ctrl + ,: Open settings
+    if (modifier && e.key === ',') {
+      e.preventDefault();
+      this.showSettings();
+      return;
+    }
 
     // Cmd/Ctrl + F: Find in page
     if (modifier && e.key === 'f') {
@@ -2545,6 +2627,100 @@ const UIBindings = {
       }
     };
     reader.readAsText(file);
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // KEYBOARD SHORTCUTS HELP
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /**
+   * Show keyboard shortcuts help overlay
+   */
+  showKeyboardShortcuts() {
+    this.hideKeyboardShortcuts();
+
+    const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+    const mod = isMac ? '⌘' : 'Ctrl';
+    const alt = isMac ? '⌥' : 'Alt';
+
+    const shortcuts = [
+      { category: 'Navigation', items: [
+        { keys: `${mod} + L`, action: 'Focus address bar' },
+        { keys: `${alt} + ←`, action: 'Go back' },
+        { keys: `${alt} + →`, action: 'Go forward' },
+        { keys: `${mod} + R`, action: 'Reload page' },
+        { keys: `${mod} + F`, action: 'Find in page' },
+      ]},
+      { category: 'Tabs', items: [
+        { keys: `${mod} + T`, action: 'New tab' },
+        { keys: `${mod} + W`, action: 'Close tab' },
+        { keys: `${mod} + 1-9`, action: 'Switch to tab' },
+        { keys: `${mod} + Shift + T`, action: 'Reopen closed tab' },
+      ]},
+      { category: 'Application', items: [
+        { keys: `${mod} + ,`, action: 'Open settings' },
+        { keys: `${mod} + /`, action: 'Show this help' },
+        { keys: 'Esc', action: 'Close dialogs' },
+      ]},
+    ];
+
+    const modal = document.createElement('div');
+    modal.id = 'shortcuts-modal';
+    modal.className = 'modal-overlay';
+    modal.setAttribute('role', 'dialog');
+    modal.setAttribute('aria-label', 'Keyboard shortcuts');
+
+    modal.innerHTML = `
+      <div class="modal-content shortcuts-modal">
+        <div class="modal-header">
+          <h2>Keyboard Shortcuts</h2>
+          <button class="modal-close" aria-label="Close" onclick="UIBindings.hideKeyboardShortcuts()">
+            <img src="icons/Dismiss.svg" alt="">
+          </button>
+        </div>
+        <div class="modal-body shortcuts-body">
+          ${shortcuts.map(cat => `
+            <div class="shortcuts-category">
+              <h3>${cat.category}</h3>
+              <div class="shortcuts-list">
+                ${cat.items.map(s => `
+                  <div class="shortcut-item">
+                    <kbd class="shortcut-keys">${s.keys}</kbd>
+                    <span class="shortcut-action">${s.action}</span>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    // Focus trap
+    const closeBtn = modal.querySelector('.modal-close');
+    closeBtn?.focus();
+
+    // Close handlers
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) this.hideKeyboardShortcuts();
+    });
+
+    const escHandler = (e) => {
+      if (e.key === 'Escape') {
+        this.hideKeyboardShortcuts();
+        document.removeEventListener('keydown', escHandler);
+      }
+    };
+    document.addEventListener('keydown', escHandler);
+  },
+
+  /**
+   * Hide keyboard shortcuts overlay
+   */
+  hideKeyboardShortcuts() {
+    document.getElementById('shortcuts-modal')?.remove();
   },
 
   // ═══════════════════════════════════════════════════════════════════════════
