@@ -12,6 +12,11 @@
   function initBrowser() {
     console.log('[App] Initializing browser...');
 
+    // Initialize AI service
+    if (typeof AIService !== 'undefined') {
+      AIService.init();
+    }
+
     // Initialize state
     BrowserState.init();
 

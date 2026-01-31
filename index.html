@@ -1463,6 +1463,321 @@
         display: none;
       }
     }
+
+    /* ═══════════════════════════════════════════════════════════════════════════
+       CONVERSATION MESSAGES
+       ═══════════════════════════════════════════════════════════════════════════ */
+    .conversation-messages {
+      display: none;
+      flex-direction: column;
+      gap: var(--space-6);
+      width: 100%;
+      max-width: var(--content-max-width);
+      padding: var(--space-8) var(--space-12);
+      overflow-y: auto;
+      flex: 1;
+      pointer-events: auto;
+    }
+
+    .conversation-messages.active {
+      display: flex;
+    }
+
+    .message {
+      display: flex;
+      gap: var(--space-4);
+      max-width: 85%;
+    }
+
+    .message-user {
+      align-self: flex-end;
+      flex-direction: row-reverse;
+    }
+
+    .message-assistant {
+      align-self: flex-start;
+    }
+
+    .message-avatar {
+      flex-shrink: 0;
+    }
+
+    .avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .avatar-user {
+      background: var(--color-bg-brand);
+      color: var(--color-fg-on-brand);
+    }
+
+    .avatar-ai {
+      background: var(--color-neutral-200);
+      color: var(--color-fg-primary);
+    }
+
+    .message-content {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-2);
+    }
+
+    .message-text {
+      padding: var(--space-4) var(--space-6);
+      border-radius: var(--radius-lg);
+      font-size: var(--font-size-sm);
+      line-height: 1.5;
+    }
+
+    .message-user .message-text {
+      background: var(--color-bg-brand);
+      color: var(--color-fg-on-brand);
+    }
+
+    .message-assistant .message-text {
+      background: var(--color-neutral-100);
+      color: var(--color-fg-primary);
+    }
+
+    .message.error .message-text {
+      background: #fef2f2;
+      color: #dc2626;
+    }
+
+    /* Typing cursor animation */
+    .typing-cursor {
+      display: inline-block;
+      width: 2px;
+      height: 1em;
+      background: currentColor;
+      margin-left: 2px;
+      animation: blink 1s infinite;
+      vertical-align: text-bottom;
+    }
+
+    @keyframes blink {
+      0%, 50% { opacity: 1; }
+      51%, 100% { opacity: 0; }
+    }
+
+    /* Code blocks in messages */
+    .message-text pre.code-block {
+      background: var(--color-bg-brand);
+      color: var(--color-fg-on-brand);
+      padding: var(--space-4);
+      border-radius: var(--radius-sm);
+      overflow-x: auto;
+      margin: var(--space-4) 0;
+      font-family: 'SF Mono', 'Menlo', 'Monaco', 'Courier New', monospace;
+      font-size: 13px;
+      line-height: 1.4;
+    }
+
+    .message-text code.inline-code {
+      background: rgba(0, 0, 0, 0.1);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: 'SF Mono', 'Menlo', 'Monaco', 'Courier New', monospace;
+      font-size: 0.9em;
+    }
+
+    .message-text a {
+      color: inherit;
+      text-decoration: underline;
+    }
+
+    .message-text ul, .message-text ol {
+      margin: var(--space-2) 0;
+      padding-left: var(--space-8);
+    }
+
+    .message-text li {
+      margin: var(--space-2) 0;
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════════════
+       MODAL
+       ═══════════════════════════════════════════════════════════════════════════ */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 2000;
+    }
+
+    .modal-content {
+      background: var(--color-bg-surface);
+      border-radius: var(--radius-xl);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+      max-width: 480px;
+      width: 90%;
+      max-height: 90vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: var(--space-8);
+      border-bottom: var(--stroke-width-default) solid var(--color-border-default);
+    }
+
+    .modal-header h2 {
+      font-size: var(--font-size-md);
+      font-weight: var(--font-weight-medium);
+      color: var(--color-fg-primary);
+      margin: 0;
+    }
+
+    .modal-close {
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: transparent;
+      border: none;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+    }
+
+    .modal-close:hover {
+      background: var(--color-bg-hover);
+    }
+
+    .modal-close img {
+      width: 16px;
+      height: 16px;
+    }
+
+    .modal-body {
+      padding: var(--space-8);
+      overflow-y: auto;
+      flex: 1;
+    }
+
+    .modal-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: var(--space-4);
+      padding: var(--space-8);
+      border-top: var(--stroke-width-default) solid var(--color-border-default);
+    }
+
+    /* Setting groups */
+    .setting-group {
+      margin-bottom: var(--space-8);
+    }
+
+    .setting-label {
+      display: block;
+      font-size: var(--font-size-sm);
+      font-weight: var(--font-weight-medium);
+      color: var(--color-fg-primary);
+      margin-bottom: var(--space-2);
+    }
+
+    .setting-select,
+    .setting-input {
+      width: 100%;
+      padding: var(--space-4);
+      font-size: var(--font-size-sm);
+      font-family: var(--font-family);
+      color: var(--color-fg-primary);
+      background: var(--color-bg-surface);
+      border: var(--stroke-width-default) solid var(--color-border-default);
+      border-radius: var(--radius-md);
+      outline: none;
+    }
+
+    .setting-select:focus,
+    .setting-input:focus {
+      border-color: var(--color-fg-primary);
+    }
+
+    .setting-hint {
+      font-size: 12px;
+      color: var(--color-fg-tertiary);
+      margin-top: var(--space-2);
+    }
+
+    .key-status {
+      font-weight: normal;
+      margin-left: var(--space-2);
+    }
+
+    .key-status.configured {
+      color: #16a34a;
+    }
+
+    /* Buttons */
+    .btn {
+      padding: var(--space-4) var(--space-8);
+      font-size: var(--font-size-sm);
+      font-family: var(--font-family);
+      font-weight: var(--font-weight-medium);
+      border: none;
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      transition: background 0.1s;
+    }
+
+    .btn-primary {
+      background: var(--color-bg-brand);
+      color: var(--color-fg-on-brand);
+      box-shadow: var(--shadow-ctrl-brand);
+    }
+
+    .btn-primary:hover {
+      background: #3a3632;
+    }
+
+    .btn-secondary {
+      background: var(--color-neutral-100);
+      color: var(--color-fg-primary);
+    }
+
+    .btn-secondary:hover {
+      background: var(--color-neutral-200);
+    }
+
+    /* Send button loading state */
+    .send-btn.loading {
+      position: relative;
+    }
+
+    .send-btn.loading .icon {
+      opacity: 0;
+    }
+
+    .send-btn.loading::after {
+      content: '';
+      position: absolute;
+      width: 16px;
+      height: 16px;
+      border: 2px solid var(--color-fg-on-brand);
+      border-top-color: transparent;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
   </style>
 </head>
 <body>
@@ -1659,13 +1974,13 @@
                       </span>
                     </button>
                     <div class="chat-input-actions-right">
-                      <div class="model-selector">
-                        <span class="model-name">GPT-5</span>
+                      <div class="model-selector" id="model-selector" title="AI Settings">
+                        <span class="model-name" id="model-name">GPT-4o</span>
                         <span class="chevron">
                           <svg viewBox="0 0 8 5" fill="none"><path d="M0.354 0.354a.5.5 0 01.707 0L4 3.293l2.939-2.94a.5.5 0 11.707.708l-3.293 3.293a.5.5 0 01-.707 0L.354 1.06a.5.5 0 010-.707z" fill="currentColor"/></svg>
                         </span>
                       </div>
-                      <button class="send-btn" title="Send">
+                      <button class="send-btn" id="send-btn" title="Send">
                       <span class="icon">
                         <img src="icons/Arrow%20Up.svg" alt="Send">
                       </span>
@@ -1682,6 +1997,7 @@
   </div>
 
   <!-- Browser State & Logic -->
+  <script src="js/ai-service.js"></script>
   <script src="js/state.js"></script>
   <script src="js/ui-bindings.js"></script>
   <script src="js/app.js"></script>

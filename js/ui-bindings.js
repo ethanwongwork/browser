@@ -179,10 +179,26 @@ const UIBindings = {
       // Chat
       chatInput: document.getElementById('chat-input'),
       chatPlaceholder: document.querySelector('.chat-input-placeholder'),
-      sendBtn: document.querySelector('.send-btn'),
-      modelSelector: document.querySelector('.model-selector'),
+      sendBtn: document.getElementById('send-btn'),
+      modelSelector: document.getElementById('model-selector'),
+      modelName: document.getElementById('model-name'),
       attachBtn: document.querySelector('.chat-input-actions .icon-btn[title="Attach"]')
     };
+    
+    // Update model name display
+    this.updateModelDisplay();
+  },
+
+  /**
+   * Update the model name display
+   */
+  updateModelDisplay() {
+    if (this.elements.modelName && typeof AIService !== 'undefined') {
+      const models = AIService.getAvailableModels();
+      const currentModel = AIService.config.model;
+      const modelInfo = models.find(m => m.id === currentModel);
+      this.elements.modelName.textContent = modelInfo?.name || currentModel;
+    }
   },
 
   /**
@@ -265,6 +281,11 @@ const UIBindings = {
     // Send button
     this.elements.sendBtn?.addEventListener('click', () => {
       this.submitChat();
+    });
+
+    // Model selector - open AI settings
+    this.elements.modelSelector?.addEventListener('click', () => {
+      this.showAISettings();
     });
 
     // Panel toggle (sidebar)
@@ -373,6 +394,13 @@ const UIBindings = {
     BrowserState.on('addressBarChanged', () => this.renderAddressBar());
     BrowserState.on('ntpUpdated', () => this.renderNtp());
     BrowserState.on('loadingStateChanged', ({ tabId, isLoading }) => this.updateLoadingState(isLoading));
+    
+    // Chat/AI events
+    BrowserState.on('conversationAdded', (conv) => this.renderConversation());
+    BrowserState.on('conversationUpdated', (conv) => this.renderConversation());
+    BrowserState.on('messageUpdated', () => this.renderConversation());
+    BrowserState.on('activeConversationChanged', () => this.renderConversation());
+    BrowserState.on('chatLoadingChanged', (isLoading) => this.updateChatLoadingState(isLoading));
   },
 
   /**
@@ -1466,6 +1494,277 @@ const UIBindings = {
         }
       }
     }
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // CONVERSATION UI
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /**
+   * Render the conversation messages
+   */
+  renderConversation() {
+    const conversation = BrowserState.getActiveConversation();
+    
+    // Get or create conversation container
+    let container = document.getElementById('conversation-messages');
+    if (!container) {
+      container = document.createElement('div');
+      container.id = 'conversation-messages';
+      container.className = 'conversation-messages';
+      
+      // Insert before chat input wrapper
+      const chatOverlay = document.querySelector('.chat-overlay-container');
+      if (chatOverlay) {
+        chatOverlay.insertBefore(container, chatOverlay.firstChild);
+      }
+    }
+
+    if (!conversation || conversation.messages.length === 0) {
+      container.innerHTML = '';
+      container.classList.remove('active');
+      return;
+    }
+
+    container.classList.add('active');
+
+    // Render messages
+    container.innerHTML = conversation.messages.map(msg => this.renderMessage(msg)).join('');
+
+    // Scroll to bottom
+    container.scrollTop = container.scrollHeight;
+  },
+
+  /**
+   * Render a single message
+   */
+  renderMessage(message) {
+    const isUser = message.role === 'user';
+    const isStreaming = message.isStreaming;
+    const isError = message.isError;
+    
+    const content = this.renderMarkdown(message.content || '');
+    
+    return `
+      <div class="message ${isUser ? 'message-user' : 'message-assistant'}${isStreaming ? ' streaming' : ''}${isError ? ' error' : ''}">
+        <div class="message-avatar">
+          ${isUser ? this.getUserAvatar() : this.getAIAvatar()}
+        </div>
+        <div class="message-content">
+          <div class="message-text">${content}${isStreaming ? '<span class="typing-cursor"></span>' : ''}</div>
+        </div>
+      </div>
+    `;
+  },
+
+  /**
+   * Get user avatar HTML
+   */
+  getUserAvatar() {
+    return `<div class="avatar avatar-user">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+      </svg>
+    </div>`;
+  },
+
+  /**
+   * Get AI avatar HTML
+   */
+  getAIAvatar() {
+    return `<div class="avatar avatar-ai">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+      </svg>
+    </div>`;
+  },
+
+  /**
+   * Simple markdown rendering
+   */
+  renderMarkdown(text) {
+    if (!text) return '';
+    
+    let html = this.escapeHtml(text);
+    
+    // Code blocks (```code```)
+    html = html.replace(/```(\w*)\n([\s\S]*?)```/g, (match, lang, code) => {
+      return `<pre class="code-block${lang ? ` language-${lang}` : ''}"><code>${code.trim()}</code></pre>`;
+    });
+    
+    // Inline code (`code`)
+    html = html.replace(/`([^`]+)`/g, '<code class="inline-code">$1</code>');
+    
+    // Bold (**text**)
+    html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+    
+    // Italic (*text*)
+    html = html.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+    
+    // Links [text](url)
+    html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+    
+    // Line breaks
+    html = html.replace(/\n/g, '<br>');
+    
+    // Unordered lists
+    html = html.replace(/^- (.+)$/gm, '<li>$1</li>');
+    html = html.replace(/(<li>.*<\/li>\n?)+/g, '<ul>$&</ul>');
+    
+    // Numbered lists
+    html = html.replace(/^\d+\. (.+)$/gm, '<li>$1</li>');
+    
+    return html;
+  },
+
+  /**
+   * Update chat loading state
+   */
+  updateChatLoadingState(isLoading) {
+    const sendBtn = this.elements.sendBtn;
+    if (sendBtn) {
+      sendBtn.disabled = isLoading;
+      sendBtn.classList.toggle('loading', isLoading);
+    }
+    
+    // Update chat input
+    if (this.elements.chatInput) {
+      this.elements.chatInput.disabled = isLoading;
+    }
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // AI SETTINGS
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /**
+   * Show AI settings modal
+   */
+  showAISettings() {
+    // Remove existing modal
+    this.hideAISettings();
+
+    const modal = document.createElement('div');
+    modal.id = 'ai-settings-modal';
+    modal.className = 'modal-overlay';
+
+    const provider = typeof AIService !== 'undefined' ? AIService.config.provider : 'openai';
+    const model = typeof AIService !== 'undefined' ? AIService.config.model : 'gpt-4o';
+    const hasKey = typeof AIService !== 'undefined' && AIService.isConfigured();
+
+    modal.innerHTML = `
+      <div class="modal-content ai-settings-modal">
+        <div class="modal-header">
+          <h2>AI Settings</h2>
+          <button class="modal-close" onclick="UIBindings.hideAISettings()">
+            <img src="icons/Dismiss.svg" alt="Close">
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="setting-group">
+            <label class="setting-label">Provider</label>
+            <select id="ai-provider" class="setting-select">
+              <option value="openai" ${provider === 'openai' ? 'selected' : ''}>OpenAI</option>
+              <option value="anthropic" ${provider === 'anthropic' ? 'selected' : ''}>Anthropic</option>
+            </select>
+          </div>
+          <div class="setting-group">
+            <label class="setting-label">Model</label>
+            <select id="ai-model" class="setting-select">
+              ${this.getModelOptions(provider, model)}
+            </select>
+          </div>
+          <div class="setting-group">
+            <label class="setting-label">API Key ${hasKey ? '<span class="key-status configured">✓ Configured</span>' : '<span class="key-status">Not set</span>'}</label>
+            <input type="password" id="ai-api-key" class="setting-input" placeholder="Enter your API key" />
+            <p class="setting-hint">Your API key is stored locally and never sent to our servers.</p>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" onclick="UIBindings.hideAISettings()">Cancel</button>
+          <button class="btn btn-primary" onclick="UIBindings.saveAISettings()">Save</button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    // Bind provider change to update model options
+    const providerSelect = document.getElementById('ai-provider');
+    providerSelect?.addEventListener('change', (e) => {
+      const modelSelect = document.getElementById('ai-model');
+      if (modelSelect) {
+        modelSelect.innerHTML = this.getModelOptions(e.target.value);
+      }
+    });
+
+    // Close on overlay click
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) {
+        this.hideAISettings();
+      }
+    });
+
+    // Close on escape
+    const escHandler = (e) => {
+      if (e.key === 'Escape') {
+        this.hideAISettings();
+        document.removeEventListener('keydown', escHandler);
+      }
+    };
+    document.addEventListener('keydown', escHandler);
+  },
+
+  /**
+   * Get model options HTML for a provider
+   */
+  getModelOptions(provider, selectedModel) {
+    if (typeof AIService === 'undefined') return '';
+    
+    const models = AIService.models[provider] || [];
+    return models.map(m => 
+      `<option value="${m.id}" ${m.id === selectedModel ? 'selected' : ''}>${m.name} - ${m.description}</option>`
+    ).join('');
+  },
+
+  /**
+   * Hide AI settings modal
+   */
+  hideAISettings() {
+    const modal = document.getElementById('ai-settings-modal');
+    if (modal) {
+      modal.remove();
+    }
+  },
+
+  /**
+   * Save AI settings
+   */
+  saveAISettings() {
+    if (typeof AIService === 'undefined') {
+      console.error('[UI] AIService not available');
+      return;
+    }
+
+    const provider = document.getElementById('ai-provider')?.value;
+    const model = document.getElementById('ai-model')?.value;
+    const apiKey = document.getElementById('ai-api-key')?.value;
+
+    if (provider) {
+      AIService.setProvider(provider);
+    }
+    if (model) {
+      AIService.setModel(model);
+    }
+    if (apiKey) {
+      AIService.setApiKey(apiKey);
+    }
+
+    // Update the model name display
+    this.updateModelDisplay();
+
+    this.hideAISettings();
+    console.log('[UI] AI settings saved');
   },
 
   /**

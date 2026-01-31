@@ -33,7 +33,8 @@ const BrowserState = {
   // Chat input state (persistent across tabs)
   chat: {
     inputValue: '',
-    activeConversationId: null
+    activeConversationId: null,
+    isLoading: false
   },
 
   // AI Conversations (independent of tabs, persists across sessions)
@@ -912,18 +913,116 @@ const BrowserState = {
     // Emit AI invocation event with context
     this.emit('aiInvocation', invocationPayload);
 
-    // Add stub AI response (simulating async response)
-    setTimeout(() => {
-      this.addMessage(conversation.id, {
-        role: 'assistant',
-        content: `This is a stub response to: "${value.slice(0, 50)}${value.length > 50 ? '...' : ''}"`
-      });
-      console.log('[State] Added stub AI response');
-    }, 500);
+    // Call AI service for real response
+    this.invokeAI(conversation.id, pageContext, tabContext);
 
     // Clear input after submit
     this.chat.inputValue = '';
     this.emit('chatInputChanged', '');
+  },
+
+  /**
+   * Invoke the AI service with streaming response
+   * @param {string} conversationId
+   * @param {Object} pageContext
+   * @param {Object} tabContext
+   */
+  async invokeAI(conversationId, pageContext, tabContext) {
+    const conversation = this.getConversation(conversationId);
+    if (!conversation) return;
+
+    // Check if AI service is configured
+    if (typeof AIService === 'undefined' || !AIService.isConfigured()) {
+      // Add error message if no API key
+      this.addMessage(conversationId, {
+        role: 'assistant',
+        content: '⚠️ AI is not configured. Please set your API key in settings to enable AI responses.\n\nGo to Settings → AI → Enter your OpenAI or Anthropic API key.'
+      });
+      return;
+    }
+
+    // Set loading state
+    this.chat.isLoading = true;
+    this.emit('chatLoadingChanged', true);
+
+    // Create placeholder message for streaming
+    const assistantMessage = this.addMessage(conversationId, {
+      role: 'assistant',
+      content: '',
+      isStreaming: true
+    });
+
+    try {
+      // Build messages from conversation history
+      const messages = AIService.buildMessages(
+        conversation.messages.slice(0, -1), // Exclude the empty placeholder
+        pageContext,
+        tabContext
+      );
+
+      // Stream the response
+      await AIService.chatStream(
+        messages,
+        // onChunk
+        (chunk, fullContent) => {
+          this.updateMessage(conversationId, assistantMessage.id, {
+            content: fullContent,
+            isStreaming: true
+          });
+        },
+        // onComplete
+        (fullContent) => {
+          this.updateMessage(conversationId, assistantMessage.id, {
+            content: fullContent,
+            isStreaming: false
+          });
+          this.chat.isLoading = false;
+          this.emit('chatLoadingChanged', false);
+          console.log('[State] AI response complete:', fullContent.length, 'chars');
+        },
+        // onError
+        (error) => {
+          console.error('[State] AI error:', error);
+          this.updateMessage(conversationId, assistantMessage.id, {
+            content: `❌ Error: ${error.message}`,
+            isStreaming: false,
+            isError: true
+          });
+          this.chat.isLoading = false;
+          this.emit('chatLoadingChanged', false);
+        }
+      );
+    } catch (error) {
+      console.error('[State] AI invocation error:', error);
+      this.updateMessage(conversationId, assistantMessage.id, {
+        content: `❌ Error: ${error.message}`,
+        isStreaming: false,
+        isError: true
+      });
+      this.chat.isLoading = false;
+      this.emit('chatLoadingChanged', false);
+    }
+  },
+
+  /**
+   * Update an existing message
+   * @param {string} conversationId
+   * @param {string} messageId
+   * @param {Object} updates
+   */
+  updateMessage(conversationId, messageId, updates) {
+    const conversation = this.getConversation(conversationId);
+    if (!conversation) return;
+
+    const message = conversation.messages.find(m => m.id === messageId);
+    if (!message) return;
+
+    Object.assign(message, updates);
+    conversation.lastUpdated = Date.now();
+
+    this.saveConversations();
+    this.emit('messageUpdated', { conversationId, messageId, message });
+    this.emit('conversationUpdated', conversation);
   },
 
   // ═══════════════════════════════════════════════════════════════════════════
