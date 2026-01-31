@@ -2191,6 +2191,260 @@
     @keyframes spin {
       to { transform: rotate(360deg); }
     }
+
+    /* ═══════════════════════════════════════════════════════════════════════════
+       SETTINGS MODAL
+       ═══════════════════════════════════════════════════════════════════════════ */
+    .settings-modal {
+      max-width: 700px;
+      width: 95%;
+      max-height: 80vh;
+    }
+
+    .settings-layout {
+      display: flex;
+      flex: 1;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    .settings-nav {
+      width: 180px;
+      flex-shrink: 0;
+      padding: var(--space-4);
+      border-right: var(--stroke-width-default) solid var(--color-border-default);
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-2);
+    }
+
+    .settings-nav-item {
+      display: flex;
+      align-items: center;
+      gap: var(--space-4);
+      padding: var(--space-4) var(--space-6);
+      border: none;
+      background: transparent;
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      font-size: var(--font-size-sm);
+      color: var(--color-fg-secondary);
+      text-align: left;
+      transition: background-color 0.15s, color 0.15s;
+    }
+
+    .settings-nav-item:hover {
+      background: var(--color-bg-hover);
+      color: var(--color-fg-primary);
+    }
+
+    .settings-nav-item.active {
+      background: var(--color-bg-secondary);
+      color: var(--color-fg-primary);
+    }
+
+    .nav-icon {
+      font-size: 16px;
+    }
+
+    .settings-content {
+      flex: 1;
+      padding: var(--space-8);
+      overflow-y: auto;
+    }
+
+    .settings-section {
+      display: none;
+    }
+
+    .settings-section.active {
+      display: block;
+    }
+
+    .settings-section h3 {
+      font-size: var(--font-size-lg);
+      font-weight: var(--font-weight-semibold);
+      color: var(--color-fg-primary);
+      margin: 0 0 var(--space-8) 0;
+    }
+
+    /* Theme options */
+    .theme-options {
+      display: flex;
+      gap: var(--space-4);
+    }
+
+    .theme-option {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: var(--space-2);
+      padding: var(--space-6);
+      border: 2px solid var(--color-border-default);
+      background: var(--color-bg-surface);
+      border-radius: var(--radius-lg);
+      cursor: pointer;
+      transition: border-color 0.15s;
+    }
+
+    .theme-option:hover {
+      border-color: var(--color-fg-secondary);
+    }
+
+    .theme-option.selected {
+      border-color: var(--color-fg-primary);
+    }
+
+    .theme-icon {
+      font-size: 24px;
+    }
+
+    /* Accent color options */
+    .accent-options {
+      display: flex;
+      gap: var(--space-4);
+    }
+
+    .accent-option {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      border: 2px solid transparent;
+      cursor: pointer;
+      transition: transform 0.15s, border-color 0.15s;
+    }
+
+    .accent-option:hover {
+      transform: scale(1.1);
+    }
+
+    .accent-option.selected {
+      border-color: var(--color-fg-primary);
+      box-shadow: 0 0 0 2px var(--color-bg-surface);
+    }
+
+    .accent-default { background: #3a3632; }
+    .accent-blue { background: #3b82f6; }
+    .accent-purple { background: #8b5cf6; }
+    .accent-green { background: #22c55e; }
+    .accent-orange { background: #f97316; }
+
+    /* Toggle switch */
+    .setting-toggle {
+      display: flex;
+      align-items: center;
+      gap: var(--space-4);
+      cursor: pointer;
+    }
+
+    .setting-toggle input {
+      display: none;
+    }
+
+    .toggle-slider {
+      width: 44px;
+      height: 24px;
+      background: var(--color-neutral-200);
+      border-radius: 12px;
+      position: relative;
+      transition: background-color 0.2s;
+      flex-shrink: 0;
+    }
+
+    .toggle-slider::after {
+      content: '';
+      position: absolute;
+      width: 20px;
+      height: 20px;
+      background: white;
+      border-radius: 50%;
+      top: 2px;
+      left: 2px;
+      transition: transform 0.2s;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+    }
+
+    .setting-toggle input:checked + .toggle-slider {
+      background: var(--color-bg-brand);
+    }
+
+    .setting-toggle input:checked + .toggle-slider::after {
+      transform: translateX(20px);
+    }
+
+    .toggle-label {
+      font-size: var(--font-size-sm);
+      color: var(--color-fg-primary);
+    }
+
+    /* Danger button */
+    .btn-danger {
+      background: #ef4444;
+      color: white;
+    }
+
+    .btn-danger:hover {
+      background: #dc2626;
+    }
+
+    .setting-danger {
+      padding: var(--space-6);
+      background: rgba(239, 68, 68, 0.1);
+      border-radius: var(--radius-lg);
+      border: 1px solid rgba(239, 68, 68, 0.2);
+    }
+
+    .clear-data-options {
+      display: flex;
+      gap: var(--space-6);
+      margin: var(--space-4) 0;
+    }
+
+    .checkbox-label {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      font-size: var(--font-size-sm);
+      color: var(--color-fg-primary);
+      cursor: pointer;
+    }
+
+    .checkbox-label input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      cursor: pointer;
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════════════
+       DARK THEME
+       ═══════════════════════════════════════════════════════════════════════════ */
+    [data-theme="dark"] {
+      --color-bg-surface: #1a1a1a;
+      --color-bg-secondary: #252525;
+      --color-bg-hover: #333333;
+      --color-fg-primary: #ffffff;
+      --color-fg-secondary: #a0a0a0;
+      --color-fg-tertiary: #707070;
+      --color-fg-muted: #505050;
+      --color-border-default: #333333;
+      --color-border-alpha-10: rgba(255, 255, 255, 0.1);
+      --color-neutral-100: #2a2a2a;
+      --color-neutral-200: #333333;
+      --color-neutral-250: #404040;
+    }
+
+    [data-theme="dark"] .chat-input-fade {
+      background: linear-gradient(to bottom, rgba(26, 26, 26, 0) 0%, rgba(26, 26, 26, 1) 50%);
+    }
+
+    [data-theme="dark"] .webview-container {
+      background: #1a1a1a;
+    }
+
+    [data-theme="dark"] .loading-bar {
+      background: linear-gradient(90deg, transparent, #4a9eff, transparent);
+    }
   </style>
 </head>
 <body>
@@ -2256,6 +2510,11 @@
         <button class="icon-btn icon-btn-md" title="Split">
           <span class="icon">
             <img src="icons/Split.svg" alt="Split">
+          </span>
+        </button>
+        <button class="icon-btn icon-btn-md" id="settings-btn" title="Settings" onclick="UIBindings.showSettings()">
+          <span class="icon">
+            <img src="icons/Settings.svg" alt="Settings">
           </span>
         </button>
         <button class="icon-btn icon-btn-md" title="Close">

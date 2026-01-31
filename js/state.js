@@ -47,6 +47,34 @@ const BrowserState = {
     enabledWidgets: ['notes', 'weather'] // Widget IDs that are enabled
   },
 
+  // Settings state
+  settings: {
+    // Appearance
+    theme: 'system', // 'light', 'dark', 'system'
+    accentColor: 'default', // 'default', 'blue', 'purple', 'green', 'orange'
+    
+    // Search
+    searchEngine: 'google', // 'google', 'bing', 'duckduckgo', 'brave'
+    showSearchSuggestions: true,
+    
+    // Privacy
+    clearDataOnExit: false,
+    blockTrackers: true,
+    doNotTrack: true,
+    
+    // AI (synced with AIService)
+    aiProvider: 'openai',
+    aiModel: 'gpt-4o'
+  },
+
+  // Search engine configurations
+  searchEngines: {
+    google: { name: 'Google', url: 'https://www.google.com/search?q=' },
+    bing: { name: 'Bing', url: 'https://www.bing.com/search?q=' },
+    duckduckgo: { name: 'DuckDuckGo', url: 'https://duckduckgo.com/?q=' },
+    brave: { name: 'Brave', url: 'https://search.brave.com/search?q=' }
+  },
+
   // Widget Registry - stores widget definitions
   _widgetRegistry: {},
 
@@ -131,6 +159,206 @@ const BrowserState = {
    */
   isWidgetEnabled(widgetId) {
     return this.ntp.enabledWidgets.includes(widgetId);
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // SETTINGS OPERATIONS
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /**
+   * Get all settings
+   * @returns {Object}
+   */
+  getSettings() {
+    return { ...this.settings };
+  },
+
+  /**
+   * Update a setting
+   * @param {string} key
+   * @param {*} value
+   */
+  setSetting(key, value) {
+    if (!(key in this.settings)) {
+      console.warn('[State] Unknown setting:', key);
+      return;
+    }
+    this.settings[key] = value;
+    this.saveSettings();
+    this.emit('settingChanged', { key, value });
+    this.emit('settingsUpdated', this.getSettings());
+
+    // Apply theme immediately
+    if (key === 'theme') {
+      this.applyTheme(value);
+    }
+  },
+
+  /**
+   * Update multiple settings at once
+   * @param {Object} updates
+   */
+  updateSettings(updates) {
+    for (const [key, value] of Object.entries(updates)) {
+      if (key in this.settings) {
+        this.settings[key] = value;
+      }
+    }
+    this.saveSettings();
+    this.emit('settingsUpdated', this.getSettings());
+
+    // Apply theme if changed
+    if ('theme' in updates) {
+      this.applyTheme(updates.theme);
+    }
+  },
+
+  /**
+   * Apply theme to document
+   * @param {string} theme - 'light', 'dark', or 'system'
+   */
+  applyTheme(theme) {
+    const root = document.documentElement;
+    
+    if (theme === 'system') {
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      root.setAttribute('data-theme', prefersDark ? 'dark' : 'light');
+    } else {
+      root.setAttribute('data-theme', theme);
+    }
+    
+    console.log('[State] Applied theme:', theme);
+  },
+
+  /**
+   * Save settings to localStorage
+   */
+  saveSettings() {
+    try {
+      localStorage.setItem('browser_settings', JSON.stringify(this.settings));
+      console.log('[State] Settings saved');
+    } catch (e) {
+      console.error('[State] Failed to save settings:', e);
+    }
+  },
+
+  /**
+   * Load settings from localStorage
+   */
+  loadSettings() {
+    try {
+      const saved = localStorage.getItem('browser_settings');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        this.settings = { ...this.settings, ...parsed };
+        console.log('[State] Settings loaded:', this.settings);
+      }
+    } catch (e) {
+      console.error('[State] Failed to load settings:', e);
+    }
+    
+    // Apply theme on load
+    this.applyTheme(this.settings.theme);
+  },
+
+  /**
+   * Get the search URL for a query
+   * @param {string} query
+   * @returns {string}
+   */
+  getSearchUrl(query) {
+    const engine = this.searchEngines[this.settings.searchEngine] || this.searchEngines.google;
+    return engine.url + encodeURIComponent(query);
+  },
+
+  /**
+   * Export all user data
+   * @returns {Object}
+   */
+  exportData() {
+    return {
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      settings: this.settings,
+      favorites: this.ntp.favorites,
+      conversations: this.conversations,
+      enabledWidgets: this.ntp.enabledWidgets
+    };
+  },
+
+  /**
+   * Import user data
+   * @param {Object} data
+   */
+  importData(data) {
+    if (!data || data.version !== 1) {
+      throw new Error('Invalid data format');
+    }
+
+    // Import settings
+    if (data.settings) {
+      this.updateSettings(data.settings);
+    }
+
+    // Import favorites
+    if (Array.isArray(data.favorites)) {
+      this.ntp.favorites = data.favorites;
+      this.saveNtpData();
+    }
+
+    // Import conversations
+    if (Array.isArray(data.conversations)) {
+      this.conversations = data.conversations;
+      this.saveConversations();
+    }
+
+    // Import enabled widgets
+    if (Array.isArray(data.enabledWidgets)) {
+      this.ntp.enabledWidgets = data.enabledWidgets;
+      this.saveNtpData();
+    }
+
+    this.emit('dataImported');
+    this.emit('ntpUpdated', this.getNtpData());
+    console.log('[State] Data imported successfully');
+  },
+
+  /**
+   * Clear all browsing data
+   * @param {Object} options - { history, favorites, conversations, settings }
+   */
+  clearData(options = {}) {
+    if (options.favorites) {
+      this.ntp.favorites = [];
+      this.saveNtpData();
+    }
+
+    if (options.conversations) {
+      this.conversations = [];
+      this.chat.activeConversationId = null;
+      this.saveConversations();
+    }
+
+    if (options.settings) {
+      // Reset to defaults
+      this.settings = {
+        theme: 'system',
+        accentColor: 'default',
+        searchEngine: 'google',
+        showSearchSuggestions: true,
+        clearDataOnExit: false,
+        blockTrackers: true,
+        doNotTrack: true,
+        aiProvider: 'openai',
+        aiModel: 'gpt-4o'
+      };
+      this.saveSettings();
+      this.applyTheme(this.settings.theme);
+    }
+
+    this.emit('dataCleared', options);
+    this.emit('ntpUpdated', this.getNtpData());
+    console.log('[State] Data cleared:', options);
   },
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -522,8 +750,8 @@ const BrowserState = {
       return trimmed;
     }
     
-    // Otherwise treat as search query (placeholder)
-    return trimmed;
+    // Otherwise treat as search query - use configured search engine
+    return this.getSearchUrl(trimmed);
   },
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -605,9 +833,17 @@ const BrowserState = {
     this.registerDefaultWidgets();
     
     // Load persisted data
+    this.loadSettings();
     this.loadTabs();
     this.loadConversations();
     this.loadNtpData();
+
+    // Listen for system theme changes
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+      if (this.settings.theme === 'system') {
+        this.applyTheme('system');
+      }
+    });
 
     this.emit('initialized');
     return this;

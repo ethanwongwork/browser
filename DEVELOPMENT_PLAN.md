@@ -261,16 +261,27 @@ Complete the New Tab Page:
 
 ---
 
-### Phase 6: Settings & Preferences
+### Phase 6: Settings & Preferences ✅
 **Goal**: User configuration panel
 
 #### Tasks:
-- [ ] Settings page/modal UI
-- [ ] Theme selection (light/dark)
-- [ ] Default search engine
-- [ ] AI provider selection
-- [ ] Privacy settings
-- [ ] Import/export data
+- [x] Settings page/modal UI
+- [x] Theme selection (light/dark)
+- [x] Default search engine
+- [x] AI provider selection
+- [x] Privacy settings
+- [x] Import/export data
+
+#### Completed:
+- Full settings modal with tabbed navigation
+- Appearance: Theme (light/dark/system), accent color
+- Search: Default engine (Google, Bing, DuckDuckGo, Brave), suggestions toggle
+- AI: Provider, model, API key (integrated with AIService)
+- Privacy: Clear on exit, block trackers, DNT
+- Data: Export/import JSON, clear data with checkboxes
+- Dark theme CSS variables
+- Settings button in toolbar
+- System theme listener
 
 #### Agent Prompt:
 ```

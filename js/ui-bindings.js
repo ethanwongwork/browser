@@ -2159,6 +2159,395 @@ const UIBindings = {
   },
 
   // ═══════════════════════════════════════════════════════════════════════════
+  // SETTINGS MODAL
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /**
+   * Show main settings modal
+   * @param {string} section - Initial section to show ('appearance', 'search', 'ai', 'privacy', 'data')
+   */
+  showSettings(section = 'appearance') {
+    this.hideSettings();
+
+    const settings = BrowserState.getSettings();
+    const hasApiKey = typeof AIService !== 'undefined' && AIService.isConfigured();
+
+    const modal = document.createElement('div');
+    modal.id = 'settings-modal';
+    modal.className = 'modal-overlay';
+
+    modal.innerHTML = `
+      <div class="modal-content settings-modal">
+        <div class="modal-header">
+          <h2>Settings</h2>
+          <button class="modal-close" onclick="UIBindings.hideSettings()">
+            <img src="icons/Dismiss.svg" alt="Close">
+          </button>
+        </div>
+        <div class="settings-layout">
+          <nav class="settings-nav">
+            <button class="settings-nav-item ${section === 'appearance' ? 'active' : ''}" data-section="appearance">
+              <span class="nav-icon">🎨</span>
+              <span>Appearance</span>
+            </button>
+            <button class="settings-nav-item ${section === 'search' ? 'active' : ''}" data-section="search">
+              <span class="nav-icon">🔍</span>
+              <span>Search</span>
+            </button>
+            <button class="settings-nav-item ${section === 'ai' ? 'active' : ''}" data-section="ai">
+              <span class="nav-icon">🤖</span>
+              <span>AI</span>
+            </button>
+            <button class="settings-nav-item ${section === 'privacy' ? 'active' : ''}" data-section="privacy">
+              <span class="nav-icon">🔒</span>
+              <span>Privacy</span>
+            </button>
+            <button class="settings-nav-item ${section === 'data' ? 'active' : ''}" data-section="data">
+              <span class="nav-icon">💾</span>
+              <span>Data</span>
+            </button>
+          </nav>
+          <div class="settings-content">
+            <!-- Appearance Section -->
+            <div class="settings-section ${section === 'appearance' ? 'active' : ''}" data-section="appearance">
+              <h3>Appearance</h3>
+              <div class="setting-group">
+                <label class="setting-label">Theme</label>
+                <div class="theme-options">
+                  <button class="theme-option ${settings.theme === 'light' ? 'selected' : ''}" data-theme="light">
+                    <span class="theme-icon">☀️</span>
+                    <span>Light</span>
+                  </button>
+                  <button class="theme-option ${settings.theme === 'dark' ? 'selected' : ''}" data-theme="dark">
+                    <span class="theme-icon">🌙</span>
+                    <span>Dark</span>
+                  </button>
+                  <button class="theme-option ${settings.theme === 'system' ? 'selected' : ''}" data-theme="system">
+                    <span class="theme-icon">💻</span>
+                    <span>System</span>
+                  </button>
+                </div>
+              </div>
+              <div class="setting-group">
+                <label class="setting-label">Accent Color</label>
+                <div class="accent-options">
+                  <button class="accent-option accent-default ${settings.accentColor === 'default' ? 'selected' : ''}" data-accent="default" title="Default"></button>
+                  <button class="accent-option accent-blue ${settings.accentColor === 'blue' ? 'selected' : ''}" data-accent="blue" title="Blue"></button>
+                  <button class="accent-option accent-purple ${settings.accentColor === 'purple' ? 'selected' : ''}" data-accent="purple" title="Purple"></button>
+                  <button class="accent-option accent-green ${settings.accentColor === 'green' ? 'selected' : ''}" data-accent="green" title="Green"></button>
+                  <button class="accent-option accent-orange ${settings.accentColor === 'orange' ? 'selected' : ''}" data-accent="orange" title="Orange"></button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Search Section -->
+            <div class="settings-section ${section === 'search' ? 'active' : ''}" data-section="search">
+              <h3>Search</h3>
+              <div class="setting-group">
+                <label class="setting-label">Default Search Engine</label>
+                <select id="settings-search-engine" class="setting-select">
+                  <option value="google" ${settings.searchEngine === 'google' ? 'selected' : ''}>Google</option>
+                  <option value="bing" ${settings.searchEngine === 'bing' ? 'selected' : ''}>Bing</option>
+                  <option value="duckduckgo" ${settings.searchEngine === 'duckduckgo' ? 'selected' : ''}>DuckDuckGo</option>
+                  <option value="brave" ${settings.searchEngine === 'brave' ? 'selected' : ''}>Brave Search</option>
+                </select>
+              </div>
+              <div class="setting-group">
+                <label class="setting-toggle">
+                  <input type="checkbox" id="settings-search-suggestions" ${settings.showSearchSuggestions ? 'checked' : ''}>
+                  <span class="toggle-slider"></span>
+                  <span class="toggle-label">Show search suggestions</span>
+                </label>
+                <p class="setting-hint">Display search suggestions as you type in the address bar</p>
+              </div>
+            </div>
+
+            <!-- AI Section -->
+            <div class="settings-section ${section === 'ai' ? 'active' : ''}" data-section="ai">
+              <h3>AI Assistant</h3>
+              <div class="setting-group">
+                <label class="setting-label">Provider</label>
+                <select id="settings-ai-provider" class="setting-select">
+                  <option value="openai" ${settings.aiProvider === 'openai' ? 'selected' : ''}>OpenAI</option>
+                  <option value="anthropic" ${settings.aiProvider === 'anthropic' ? 'selected' : ''}>Anthropic</option>
+                </select>
+              </div>
+              <div class="setting-group">
+                <label class="setting-label">Model</label>
+                <select id="settings-ai-model" class="setting-select">
+                  ${this.getModelOptionsForSettings(settings.aiProvider, settings.aiModel)}
+                </select>
+              </div>
+              <div class="setting-group">
+                <label class="setting-label">
+                  API Key 
+                  ${hasApiKey ? '<span class="key-status configured">✓ Configured</span>' : '<span class="key-status">Not set</span>'}
+                </label>
+                <input type="password" id="settings-ai-key" class="setting-input" placeholder="Enter your API key">
+                <p class="setting-hint">Your API key is stored locally and never sent to our servers.</p>
+              </div>
+            </div>
+
+            <!-- Privacy Section -->
+            <div class="settings-section ${section === 'privacy' ? 'active' : ''}" data-section="privacy">
+              <h3>Privacy</h3>
+              <div class="setting-group">
+                <label class="setting-toggle">
+                  <input type="checkbox" id="settings-clear-on-exit" ${settings.clearDataOnExit ? 'checked' : ''}>
+                  <span class="toggle-slider"></span>
+                  <span class="toggle-label">Clear browsing data on exit</span>
+                </label>
+              </div>
+              <div class="setting-group">
+                <label class="setting-toggle">
+                  <input type="checkbox" id="settings-block-trackers" ${settings.blockTrackers ? 'checked' : ''}>
+                  <span class="toggle-slider"></span>
+                  <span class="toggle-label">Block trackers</span>
+                </label>
+              </div>
+              <div class="setting-group">
+                <label class="setting-toggle">
+                  <input type="checkbox" id="settings-dnt" ${settings.doNotTrack ? 'checked' : ''}>
+                  <span class="toggle-slider"></span>
+                  <span class="toggle-label">Send "Do Not Track" requests</span>
+                </label>
+              </div>
+            </div>
+
+            <!-- Data Section -->
+            <div class="settings-section ${section === 'data' ? 'active' : ''}" data-section="data">
+              <h3>Data Management</h3>
+              <div class="setting-group">
+                <label class="setting-label">Export Data</label>
+                <p class="setting-hint">Download all your favorites, conversations, and settings as a JSON file.</p>
+                <button class="btn btn-secondary" id="export-data-btn">
+                  <span>Export Data</span>
+                </button>
+              </div>
+              <div class="setting-group">
+                <label class="setting-label">Import Data</label>
+                <p class="setting-hint">Restore data from a previously exported file.</p>
+                <input type="file" id="import-data-input" accept=".json" style="display: none;">
+                <button class="btn btn-secondary" id="import-data-btn">
+                  <span>Import Data</span>
+                </button>
+              </div>
+              <div class="setting-group setting-danger">
+                <label class="setting-label">Clear Data</label>
+                <p class="setting-hint">Permanently delete your browsing data. This cannot be undone.</p>
+                <div class="clear-data-options">
+                  <label class="checkbox-label">
+                    <input type="checkbox" id="clear-favorites"> Favorites
+                  </label>
+                  <label class="checkbox-label">
+                    <input type="checkbox" id="clear-conversations"> Conversations
+                  </label>
+                  <label class="checkbox-label">
+                    <input type="checkbox" id="clear-settings"> Settings
+                  </label>
+                </div>
+                <button class="btn btn-danger" id="clear-data-btn">
+                  <span>Clear Selected Data</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    // Bind navigation
+    modal.querySelectorAll('.settings-nav-item').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const targetSection = btn.dataset.section;
+        modal.querySelectorAll('.settings-nav-item').forEach(b => b.classList.remove('active'));
+        modal.querySelectorAll('.settings-section').forEach(s => s.classList.remove('active'));
+        btn.classList.add('active');
+        modal.querySelector(`.settings-section[data-section="${targetSection}"]`)?.classList.add('active');
+      });
+    });
+
+    // Theme selection
+    modal.querySelectorAll('.theme-option').forEach(btn => {
+      btn.addEventListener('click', () => {
+        modal.querySelectorAll('.theme-option').forEach(b => b.classList.remove('selected'));
+        btn.classList.add('selected');
+        BrowserState.setSetting('theme', btn.dataset.theme);
+      });
+    });
+
+    // Accent color selection
+    modal.querySelectorAll('.accent-option').forEach(btn => {
+      btn.addEventListener('click', () => {
+        modal.querySelectorAll('.accent-option').forEach(b => b.classList.remove('selected'));
+        btn.classList.add('selected');
+        BrowserState.setSetting('accentColor', btn.dataset.accent);
+      });
+    });
+
+    // Search engine
+    document.getElementById('settings-search-engine')?.addEventListener('change', (e) => {
+      BrowserState.setSetting('searchEngine', e.target.value);
+    });
+
+    // Search suggestions
+    document.getElementById('settings-search-suggestions')?.addEventListener('change', (e) => {
+      BrowserState.setSetting('showSearchSuggestions', e.target.checked);
+    });
+
+    // AI provider change - update model options
+    document.getElementById('settings-ai-provider')?.addEventListener('change', (e) => {
+      const modelSelect = document.getElementById('settings-ai-model');
+      if (modelSelect) {
+        modelSelect.innerHTML = this.getModelOptionsForSettings(e.target.value);
+      }
+      BrowserState.setSetting('aiProvider', e.target.value);
+      if (typeof AIService !== 'undefined') {
+        AIService.setProvider(e.target.value);
+      }
+    });
+
+    // AI model
+    document.getElementById('settings-ai-model')?.addEventListener('change', (e) => {
+      BrowserState.setSetting('aiModel', e.target.value);
+      if (typeof AIService !== 'undefined') {
+        AIService.setModel(e.target.value);
+      }
+    });
+
+    // AI API key
+    document.getElementById('settings-ai-key')?.addEventListener('change', (e) => {
+      if (e.target.value && typeof AIService !== 'undefined') {
+        AIService.setApiKey(e.target.value);
+        // Update the status indicator
+        const label = modal.querySelector('.settings-section[data-section="ai"] .key-status');
+        if (label) {
+          label.textContent = '✓ Configured';
+          label.classList.add('configured');
+        }
+      }
+    });
+
+    // Privacy toggles
+    document.getElementById('settings-clear-on-exit')?.addEventListener('change', (e) => {
+      BrowserState.setSetting('clearDataOnExit', e.target.checked);
+    });
+    document.getElementById('settings-block-trackers')?.addEventListener('change', (e) => {
+      BrowserState.setSetting('blockTrackers', e.target.checked);
+    });
+    document.getElementById('settings-dnt')?.addEventListener('change', (e) => {
+      BrowserState.setSetting('doNotTrack', e.target.checked);
+    });
+
+    // Export data
+    document.getElementById('export-data-btn')?.addEventListener('click', () => {
+      this.exportUserData();
+    });
+
+    // Import data
+    document.getElementById('import-data-btn')?.addEventListener('click', () => {
+      document.getElementById('import-data-input')?.click();
+    });
+    document.getElementById('import-data-input')?.addEventListener('change', (e) => {
+      this.importUserData(e.target.files[0]);
+    });
+
+    // Clear data
+    document.getElementById('clear-data-btn')?.addEventListener('click', () => {
+      const options = {
+        favorites: document.getElementById('clear-favorites')?.checked,
+        conversations: document.getElementById('clear-conversations')?.checked,
+        settings: document.getElementById('clear-settings')?.checked
+      };
+      
+      if (!options.favorites && !options.conversations && !options.settings) {
+        alert('Please select at least one type of data to clear.');
+        return;
+      }
+      
+      if (confirm('Are you sure you want to clear the selected data? This cannot be undone.')) {
+        BrowserState.clearData(options);
+        this.hideSettings();
+      }
+    });
+
+    // Close on overlay click
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) this.hideSettings();
+    });
+
+    // Close on escape
+    const escHandler = (e) => {
+      if (e.key === 'Escape') {
+        this.hideSettings();
+        document.removeEventListener('keydown', escHandler);
+      }
+    };
+    document.addEventListener('keydown', escHandler);
+  },
+
+  /**
+   * Hide settings modal
+   */
+  hideSettings() {
+    document.getElementById('settings-modal')?.remove();
+  },
+
+  /**
+   * Get model options for settings modal
+   */
+  getModelOptionsForSettings(provider, selectedModel) {
+    if (typeof AIService === 'undefined') return '';
+    
+    const models = AIService.models[provider] || [];
+    return models.map(m => 
+      `<option value="${m.id}" ${m.id === selectedModel ? 'selected' : ''}>${m.name}</option>`
+    ).join('');
+  },
+
+  /**
+   * Export user data to file
+   */
+  exportUserData() {
+    const data = BrowserState.exportData();
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `browser-data-${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    console.log('[UI] Data exported');
+  },
+
+  /**
+   * Import user data from file
+   */
+  importUserData(file) {
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const data = JSON.parse(e.target.result);
+        BrowserState.importData(data);
+        alert('Data imported successfully!');
+        this.hideSettings();
+      } catch (err) {
+        console.error('[UI] Failed to import data:', err);
+        alert('Failed to import data. Please check the file format.');
+      }
+    };
+    reader.readAsText(file);
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
   // AI SETTINGS
   // ═══════════════════════════════════════════════════════════════════════════
 
