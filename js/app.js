@@ -31,6 +31,13 @@
     // Initial render
     UIBindings.render();
 
+    // Initialize content blocks system (main process batch) with fallback to direct AI
+    if (typeof BlocksService !== 'undefined') {
+      BlocksService.init('');
+    } else if (typeof ContentCards !== 'undefined') {
+      ContentCards.init('');
+    }
+
     // Add keyboard shortcuts
     initKeyboardShortcuts();
 

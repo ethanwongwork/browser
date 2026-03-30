@@ -1,5 +1,20 @@
 const { app, BrowserWindow, ipcMain, session, globalShortcut, dialog } = require('electron');
 const path = require('path');
+const cardsBatch = require('./cards-batch');
+
+// Hot reload in development mode
+if (process.env.NODE_ENV === 'development' || !app.isPackaged) {
+  try {
+    require('electron-reload')(__dirname, {
+      electron: path.join(__dirname, 'node_modules', '.bin', 'electron'),
+      hardResetMethod: 'exit',
+      forceHardReset: false
+    });
+    console.log('Hot reload enabled');
+  } catch (e) {
+    console.log('electron-reload not available:', e.message);
+  }
+}
 
 // Auto-updater (only in production builds)
 let autoUpdater;
@@ -16,6 +31,8 @@ let mainWindow;
 
 // Global error handler
 process.on('uncaughtException', (error) => {
+  // Ignore EPIPE errors — caused by broken stdout/stderr pipes
+  if (error.code === 'EPIPE' || error.message?.includes('EPIPE')) return;
   console.error('Uncaught Exception:', error);
   dialog.showErrorBox('Error', `An unexpected error occurred: ${error.message}`);
 });
@@ -31,10 +48,11 @@ function createWindow() {
     height: 900,
     minWidth: 800,
     minHeight: 600,
-    titleBarStyle: 'hiddenInset', // macOS: hide title bar but keep traffic lights
-    trafficLightPosition: { x: 16, y: 16 }, // Position traffic lights
-    frame: process.platform === 'darwin' ? true : false, // Frameless on Windows/Linux
-    backgroundColor: '#f5f5f5', // Match --color-neutral-150
+    titleBarStyle: 'hidden', // Fully hidden title bar
+    trafficLightPosition: { x: 16, y: 16 }, // Position traffic lights (8px padding inside 78px spacer)
+    transparent: true, // Enable transparent window
+    hasShadow: true, // Keep window shadow
+    backgroundColor: '#00000000', // Transparent background
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       nodeIntegration: false,
@@ -83,6 +101,10 @@ app.whenReady().then(() => {
       createWindow();
     }
   });
+
+  // Initialize cards batch system
+  cardsBatch.setMainWindow(mainWindow);
+  cardsBatch.startScheduler();
 });
 
 // Auto-updater setup
@@ -146,6 +168,28 @@ app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit();
   }
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// IPC Handlers for content blocks (cards-batch)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+ipcMain.handle('blocks:get', async (event, count) => {
+  return cardsBatch.getBlocks(count || 4);
+});
+
+ipcMain.handle('blocks:refresh', async () => {
+  await cardsBatch.runBatch(true);
+  return { success: true };
+});
+
+ipcMain.handle('blocks:status', async () => {
+  return cardsBatch.getPoolStatus();
+});
+
+ipcMain.handle('blocks:set-ai-config', async (event, config) => {
+  cardsBatch.setAIConfig(config);
+  return { success: true };
 });
 
 // ═══════════════════════════════════════════════════════════════════════════════

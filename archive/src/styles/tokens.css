@@ -1,0 +1,235 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   DESIGN TOKENS - Updated from Figma February 1, 2026
+   Figma: @https://www.figma.com/design/OjCGZd7Ct7w42kI74xEAuH/Cards?node-id=87840-6478&m=dev
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   SF SYMBOLS ICON SYSTEM
+   Uses SF Pro font for native macOS icons with Unicode private use area
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* SF Symbol Icon Base */
+.sf-icon {
+  font-family: 'SF Pro Rounded', 'SF Pro', -apple-system, system-ui, sans-serif;
+  font-style: normal;
+  font-weight: 400;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  line-height: 1;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Icon Sizes (matching Figma) */
+.sf-icon-sm {
+  font-size: 12px;
+  width: 16px;
+  height: 16px;
+}
+
+.sf-icon-md {
+  font-size: 12px;
+  width: 20px;
+  height: 20px;
+}
+
+.sf-icon-lg {
+  font-size: 14px;
+  width: 24px;
+  height: 24px;
+}
+
+:root {
+  /* ─────────────────────────────────────────────────────────────────────────
+     COLORS - Static Neutrals (from Figma variables)
+     ───────────────────────────────────────────────────────────────────────── */
+  --color-neutral-white: #ffffff;
+  --color-neutral-100: #fafafa;
+  --color-neutral-150: #f5f5f5;
+  --color-neutral-200: #f0f0f0;
+  --color-neutral-300: #c7c7c7;
+  --color-neutral-400: #8f8f8f;
+  --color-neutral-600: #525252;
+  --color-neutral-800: #242424;
+  --color-neutral-stone: #6d7176;
+
+  /* ─────────────────────────────────────────────────────────────────────────
+     COLORS - Alpha/Transparency (from Figma variables)
+     ───────────────────────────────────────────────────────────────────────── */
+  --color-alpha-black-5: rgba(0, 0, 0, 0.05);
+  --color-alpha-black-8: rgba(0, 0, 0, 0.08);
+  --color-alpha-black-10: rgba(0, 0, 0, 0.10);
+
+  /* ─────────────────────────────────────────────────────────────────────────
+     COLORS - Overlay (from Figma variables)
+     ───────────────────────────────────────────────────────────────────────── */
+  --color-overlay-white-40: rgba(255, 255, 255, 0.4);
+
+  /* ─────────────────────────────────────────────────────────────────────────
+     COLORS - Semantic Foreground
+     ───────────────────────────────────────────────────────────────────────── */
+  --color-fg-primary: #272320;
+  --color-fg-secondary: #525252;
+  --color-fg-tertiary: #6d7176;
+  --color-fg-muted: #8f8f8f;
+  --color-fg-disabled: #c7c7c7;
+  --color-fg-on-brand: #c7c7c7;
+  --color-fg-icon: #525252;
+  --color-fg-icon-muted: #8f8f8f;
+
+  /* ─────────────────────────────────────────────────────────────────────────
+     COLORS - Semantic Background
+     ───────────────────────────────────────────────────────────────────────── */
+  --color-bg-surface: #ffffff;
+  --color-bg-subtle: #fafafa;
+  --color-bg-muted: #f5f5f5;
+  --color-bg-brand: #525252;
+  --color-bg-hover: #fafafa;
+  --color-bg-active: #f0f0f0;
+  --color-bg-overlay: rgba(255, 255, 255, 0.4);
+
+  /* ─────────────────────────────────────────────────────────────────────────
+     COLORS - Semantic Border
+     ───────────────────────────────────────────────────────────────────────── */
+  --color-border-default: #f0f0f0;
+  --color-border-subtle: rgba(0, 0, 0, 0.08);
+  --color-border-muted: rgba(0, 0, 0, 0.05);
+
+  /* ─────────────────────────────────────────────────────────────────────────
+     TYPOGRAPHY (from Figma - New York & SF Pro Rounded)
+     ───────────────────────────────────────────────────────────────────────── */
+  --font-family: 'New York', 'SF Pro Display', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  --font-family-icons: 'SF Pro Rounded', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  
+  /* Font Sizes */
+  --font-size-xs: 12px;
+  --font-size-sm: 14px;
+  --font-size-base: 16px;
+  --font-size-md: 18px;
+  --font-size-lg: 20px;
+
+  /* Line Heights */
+  --line-height-xs: 16px;
+  --line-height-sm: 20px;
+  --line-height-base: 24px;
+  --line-height-md: 26px;
+
+  /* Font Weights */
+  --font-weight-regular: 400;
+  --font-weight-medium: 496;
+  --font-weight-semibold: 550;
+
+  /* ─────────────────────────────────────────────────────────────────────────
+     SPACING (from Figma - consistent scale)
+     ───────────────────────────────────────────────────────────────────────── */
+  --space-0: 0px;
+  --space-1: 2px;
+  --space-2: 4px;
+  --space-3: 6px;
+  --space-4: 8px;
+  --space-6: 12px;
+  --space-8: 16px;
+  --space-12: 24px;
+  --space-16: 32px;
+  --space-24: 64px;
+
+  /* ─────────────────────────────────────────────────────────────────────────
+     STROKE
+     ───────────────────────────────────────────────────────────────────────── */
+  --stroke-width-default: 1px;
+  --stroke-width-thick: 0.5px;
+
+  /* ─────────────────────────────────────────────────────────────────────────
+     SHADOWS (from Figma)
+     ───────────────────────────────────────────────────────────────────────── */
+  --shadow-sm: 0px 1px 2px 0px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0px 8px 24px 0px rgba(0, 0, 0, 0.08);
+  --shadow-chat: 0px 1px 2px 0px rgba(0, 0, 0, 0.05), 0px 8px 24px 0px rgba(0, 0, 0, 0.08);
+  --shadow-ctrl-brand: 0px 1px 3px 0px rgba(0, 0, 0, 0.15);
+
+  /* ─────────────────────────────────────────────────────────────────────────
+     CORNER RADIUS (from Figma)
+     ───────────────────────────────────────────────────────────────────────── */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-2xl: 20px;
+  --radius-3xl: 24px;
+  --radius-4xl: 32px;
+  --radius-full: 100px;
+
+  /* ─────────────────────────────────────────────────────────────────────────
+     BUTTON TOKENS - Small (from Figma button/small)
+     ───────────────────────────────────────────────────────────────────────── */
+  --btn-sm-height: 24px;
+  --btn-sm-min-width: 24px;
+  --btn-sm-padding: 4px;
+  --btn-sm-radius: 8px;
+  --btn-sm-icon-size: 16px;
+
+  /* ─────────────────────────────────────────────────────────────────────────
+     BUTTON TOKENS - Large (from Figma button/large)
+     ───────────────────────────────────────────────────────────────────────── */
+  --btn-lg-height: 32px;
+  --btn-lg-min-width: 32px;
+  --btn-lg-padding: 6px;
+  --btn-lg-radius: 12px;
+  --btn-lg-icon-size: 20px;
+
+  /* ─────────────────────────────────────────────────────────────────────────
+     FAVICON (from Figma)
+     ───────────────────────────────────────────────────────────────────────── */
+  --favicon-size-sm: 16px;
+  --favicon-size-md: 20px;
+  --favicon-size-lg: 48px;
+  --favicon-radius-sm: 6px;
+  --favicon-radius-lg: 12px;
+
+  /* ─────────────────────────────────────────────────────────────────────────
+     SIDEBAR (from Figma Nav component)
+     ───────────────────────────────────────────────────────────────────────── */
+  --sidebar-width: 220px;
+  --sidebar-padding: 4px;
+  --sidebar-gap: 4px;
+  --sidebar-tab-padding: 4px;
+  --sidebar-tab-radius: 12px;
+
+  /* ─────────────────────────────────────────────────────────────────────────
+     CARDS (from Figma Card component)
+     ───────────────────────────────────────────────────────────────────────── */
+  --card-min-width: 200px;
+  --card-height: 180px;
+  --card-padding: 16px;
+  --card-gap: 16px;
+  --card-radius: 32px;
+
+  /* ─────────────────────────────────────────────────────────────────────────
+     SEARCH BAR (from Figma search component)
+     ───────────────────────────────────────────────────────────────────────── */
+  --search-padding: 4px;
+  --search-gap: 4px;
+  --search-radius: 12px;
+  --search-bg: #fafafa;
+  --search-border: rgba(0, 0, 0, 0.08);
+
+  /* ─────────────────────────────────────────────────────────────────────────
+     CHAT INPUT (from Figma Chat component)
+     ───────────────────────────────────────────────────────────────────────── */
+  --chat-max-width: 600px;
+  --chat-padding: 12px;
+  --chat-gap: 12px;
+  --chat-radius: 24px;
+
+  /* ─────────────────────────────────────────────────────────────────────────
+     CONTENT AREA
+     ───────────────────────────────────────────────────────────────────────── */
+  --content-max-width: 860px;
+  --content-padding-x: 32px;
+  --content-padding-top: 64px;
+  --content-section-gap: 64px;
+  --content-grid-gap: 16px;
+}

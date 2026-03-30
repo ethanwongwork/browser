@@ -32,9 +32,9 @@ When the user is viewing a web page, you'll receive its content as context. Be c
       { id: 'gpt-3.5-turbo', name: 'GPT-3.5 Turbo', description: 'Fast responses' }
     ],
     anthropic: [
-      { id: 'claude-3-5-sonnet-20241022', name: 'Claude 3.5 Sonnet', description: 'Best for most tasks' },
-      { id: 'claude-3-opus-20240229', name: 'Claude 3 Opus', description: 'Most capable' },
-      { id: 'claude-3-haiku-20240307', name: 'Claude 3 Haiku', description: 'Fast and efficient' }
+      { id: 'claude-sonnet-4-20250514', name: 'Claude Sonnet 4', description: 'Best for most tasks' },
+      { id: 'claude-opus-4-20250514', name: 'Claude Opus 4', description: 'Most capable' },
+      { id: 'claude-3-5-haiku-20241022', name: 'Claude 3.5 Haiku', description: 'Fast and efficient' }
     ]
   },
 
@@ -52,15 +52,16 @@ When the user is viewing a web page, you'll receive its content as context. Be c
     if (options.model) this.config.model = options.model;
     if (options.systemPrompt) this.config.systemPrompt = options.systemPrompt;
 
-    // Try to load API key from localStorage
-    const savedKey = localStorage.getItem(`ai_api_key_${this.config.provider}`);
-    if (savedKey && !this.config.apiKey) {
-      this.config.apiKey = savedKey;
-    }
-
+    // Load saved provider FIRST so we look up the right API key
     const savedProvider = localStorage.getItem('ai_provider');
     if (savedProvider) {
       this.config.provider = savedProvider;
+    }
+
+    // Now load the API key for the active provider
+    const savedKey = localStorage.getItem(`ai_api_key_${this.config.provider}`);
+    if (savedKey && !this.config.apiKey) {
+      this.config.apiKey = savedKey;
     }
 
     const savedModel = localStorage.getItem('ai_model');
@@ -68,18 +69,25 @@ When the user is viewing a web page, you'll receive its content as context. Be c
       this.config.model = savedModel;
     }
 
-    console.log('[AI] Service initialized:', this.config.provider, this.config.model);
+    console.log('[AI] Service initialized:', this.config.provider, this.config.model, this.isConfigured() ? '(key set)' : '(no key)');
     return this;
   },
 
   /**
-   * Set the API key for the current provider
+   * Set the API key for a provider
    * @param {string} apiKey
+   * @param {string} [provider] - Optional provider, defaults to current provider
    */
-  setApiKey(apiKey) {
-    this.config.apiKey = apiKey;
-    localStorage.setItem(`ai_api_key_${this.config.provider}`, apiKey);
-    console.log('[AI] API key set for', this.config.provider);
+  setApiKey(apiKey, provider) {
+    const targetProvider = provider || this.config.provider;
+    localStorage.setItem(`ai_api_key_${targetProvider}`, apiKey);
+    
+    // If this is for the current provider, also update config
+    if (targetProvider === this.config.provider) {
+      this.config.apiKey = apiKey;
+    }
+    
+    console.log('[AI] API key set for', targetProvider);
   },
 
   /**

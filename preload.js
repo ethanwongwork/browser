@@ -54,5 +54,18 @@ contextBridge.exposeInMainWorld('electronAPI', {
   }
 });
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// Expose blocks API for NTP content system
+// ═══════════════════════════════════════════════════════════════════════════════
+
+contextBridge.exposeInMainWorld('blocksAPI', {
+  getBlocks: (count) => ipcRenderer.invoke('blocks:get', count),
+  refreshPool: () => ipcRenderer.invoke('blocks:refresh'),
+  getPoolStatus: () => ipcRenderer.invoke('blocks:status'),
+  setAIConfig: (config) => ipcRenderer.invoke('blocks:set-ai-config', config),
+  onBlocksReady: (cb) => ipcRenderer.on('blocks:ready', () => cb()),
+  onBlocksError: (cb) => ipcRenderer.on('blocks:error', (_e, msg) => cb(msg))
+});
+
 // Log when preload script runs
 console.log('Preload script loaded');

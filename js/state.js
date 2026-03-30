@@ -24,6 +24,14 @@ const BrowserState = {
     canGoForward: false
   },
 
+  // Split view state
+  splitView: {
+    enabled: false,      // Is split view active
+    activePane: 1,       // Which pane is focused (1 or 2)
+    pane1TabId: null,    // Tab ID shown in pane 1
+    pane2TabId: null     // Tab ID shown in pane 2
+  },
+
   // UI loading indicators
   ui: {
     isLoading: false,
@@ -42,7 +50,21 @@ const BrowserState = {
 
   // New Tab Page state
   ntp: {
-    favorites: [],  // Array of { id, title, url, favicon }
+    favorites: [
+      { id: 'fav-1', title: 'Notion', url: 'https://notion.so', faviconUrl: 'https://www.google.com/s2/favicons?domain=notion.so&sz=32' },
+      { id: 'fav-2', title: 'Claude', url: 'https://claude.ai', faviconUrl: 'https://www.google.com/s2/favicons?domain=claude.ai&sz=32' },
+      { id: 'fav-3', title: 'Reddit', url: 'https://reddit.com', faviconUrl: 'https://www.google.com/s2/favicons?domain=reddit.com&sz=32' },
+      { id: 'fav-4', title: 'ChatGPT', url: 'https://chat.openai.com', faviconUrl: 'https://www.google.com/s2/favicons?domain=chat.openai.com&sz=32' },
+      { id: 'fav-5', title: 'Gemini', url: 'https://gemini.google.com', faviconUrl: 'https://www.google.com/s2/favicons?domain=gemini.google.com&sz=32' },
+      { id: 'fav-6', title: 'NYTimes', url: 'https://nytimes.com', faviconUrl: 'https://www.google.com/s2/favicons?domain=nytimes.com&sz=32' },
+      { id: 'fav-7', title: 'It\'s Nice That', url: 'https://itsnicethat.com', faviconUrl: 'https://www.google.com/s2/favicons?domain=itsnicethat.com&sz=32' },
+      { id: 'fav-8', title: 'Perplexity', url: 'https://perplexity.ai', faviconUrl: 'https://www.google.com/s2/favicons?domain=perplexity.ai&sz=32' },
+      { id: 'fav-9', title: 'Medium', url: 'https://medium.com', faviconUrl: 'https://www.google.com/s2/favicons?domain=medium.com&sz=32' },
+      { id: 'fav-10', title: 'Curbed', url: 'https://curbed.com', faviconUrl: 'https://www.google.com/s2/favicons?domain=curbed.com&sz=32' },
+      { id: 'fav-11', title: 'SSENSE', url: 'https://ssense.com', faviconUrl: 'https://www.google.com/s2/favicons?domain=ssense.com&sz=32' },
+      { id: 'fav-12', title: 'Netflix', url: 'https://netflix.com', faviconUrl: 'https://www.google.com/s2/favicons?domain=netflix.com&sz=32' },
+      { id: 'fav-13', title: 'Nike', url: 'https://nike.com', faviconUrl: 'https://www.google.com/s2/favicons?domain=nike.com&sz=32' }
+    ],  // Array of { id, title, url, faviconUrl }
     recentChats: [], // Derived from conversations
     enabledWidgets: ['notes', 'weather'] // Widget IDs that are enabled
   },
@@ -412,6 +434,8 @@ const BrowserState = {
       title: options.title || 'New tab',
       url: options.url || '',
       favicon: options.favicon || null,
+      faviconUrl: options.faviconUrl || null,
+      thumbnailUrl: options.thumbnailUrl || null,
       isPinned: options.isPinned || false,
       isLoading: false,
       canGoBack: false,
@@ -648,6 +672,106 @@ const BrowserState = {
     };
   },
 
+  // ═══════════════════════════════════════════════════════════════════════════
+  // SPLIT VIEW OPERATIONS
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /**
+   * Toggle split view mode
+   */
+  toggleSplitView() {
+    this.splitView.enabled = !this.splitView.enabled;
+    
+    if (this.splitView.enabled) {
+      // When enabling, set pane 1 to current active tab
+      this.splitView.pane1TabId = this.activeTabId;
+      this.splitView.activePane = 1;
+      
+      // Create a new tab for pane 2 or use an existing one
+      if (this.tabs.length > 1) {
+        // Use the most recent non-active tab
+        const otherTab = this.tabs.find(t => t.id !== this.activeTabId);
+        this.splitView.pane2TabId = otherTab ? otherTab.id : null;
+      } else {
+        // Create a new tab for pane 2
+        const newTab = this.addTab({ url: '', title: 'Home' }, false);
+        this.splitView.pane2TabId = newTab.id;
+      }
+    } else {
+      // When disabling, clear pane 2
+      this.splitView.pane2TabId = null;
+      this.splitView.activePane = 1;
+    }
+    
+    this.emit('splitViewChanged', this.splitView);
+    this.emit('stateChanged');
+    console.log('[State] Split view:', this.splitView.enabled ? 'enabled' : 'disabled');
+  },
+
+  /**
+   * Set the active split pane (1 or 2)
+   * @param {number} pane - 1 or 2
+   */
+  setActiveSplitPane(pane) {
+    if (!this.splitView.enabled) return;
+    if (pane !== 1 && pane !== 2) return;
+    
+    this.splitView.activePane = pane;
+    
+    // Update active tab based on pane
+    const tabId = pane === 1 ? this.splitView.pane1TabId : this.splitView.pane2TabId;
+    if (tabId) {
+      this.activeTabId = tabId;
+      const tab = this.getTab(tabId);
+      if (tab) {
+        this.addressBar.value = tab.url || '';
+        this.addressBar.isEditing = false;
+      }
+    }
+    
+    this.emit('splitPaneChanged', pane);
+    this.emit('stateChanged');
+  },
+
+  /**
+   * Set the tab for a specific split pane
+   * @param {number} pane - 1 or 2
+   * @param {string} tabId - Tab ID to show in that pane
+   */
+  setSplitPaneTab(pane, tabId) {
+    if (!this.splitView.enabled) return;
+    if (pane !== 1 && pane !== 2) return;
+    
+    if (pane === 1) {
+      this.splitView.pane1TabId = tabId;
+    } else {
+      this.splitView.pane2TabId = tabId;
+    }
+    
+    // If this is the active pane, also update active tab
+    if (this.splitView.activePane === pane) {
+      this.activeTabId = tabId;
+      const tab = this.getTab(tabId);
+      if (tab) {
+        this.addressBar.value = tab.url || '';
+      }
+    }
+    
+    this.emit('splitPaneTabChanged', { pane, tabId });
+    this.emit('stateChanged');
+  },
+
+  /**
+   * Get the tab ID for a specific pane
+   * @param {number} pane - 1 or 2
+   * @returns {string|null}
+   */
+  getSplitPaneTabId(pane) {
+    if (pane === 1) return this.splitView.pane1TabId;
+    if (pane === 2) return this.splitView.pane2TabId;
+    return null;
+  },
+
   /**
    * Updates a tab's properties
    * @param {string} tabId
@@ -879,7 +1003,7 @@ const BrowserState = {
         const weatherContent = document.createElement('div');
         weatherContent.className = 'widget-weather-content';
         weatherContent.innerHTML = `
-          <div class="weather-temp">72°F</div>
+          <div class="weather-temp">72°</div>
           <div class="weather-condition">Sunny</div>
           <div class="weather-location">San Francisco, CA</div>
         `;
@@ -1037,7 +1161,7 @@ const BrowserState = {
   /**
    * Update an existing favorite
    * @param {string} favoriteId
-   * @param {Object} updates - { title, url, favicon }
+   * @param {Object} updates - { title, url, favicon, thumbnailUrl }
    */
   updateFavorite(favoriteId, updates) {
     const fav = this.ntp.favorites.find(f => f.id === favoriteId);
@@ -1046,6 +1170,7 @@ const BrowserState = {
     if (updates.title !== undefined) fav.title = updates.title;
     if (updates.url !== undefined) fav.url = updates.url;
     if (updates.favicon !== undefined) fav.favicon = updates.favicon;
+    if (updates.thumbnailUrl !== undefined) fav.thumbnailUrl = updates.thumbnailUrl;
 
     this.saveNtpData();
     this.emit('ntpUpdated', this.getNtpData());
@@ -1178,18 +1303,19 @@ const BrowserState = {
    */
   getDefaultFavorites() {
     return [
-      { id: this.generateId(), title: 'Google', url: 'https://google.com', favicon: 'google' },
-      { id: this.generateId(), title: 'GitHub', url: 'https://github.com', favicon: 'github' },
-      { id: this.generateId(), title: 'YouTube', url: 'https://youtube.com', favicon: 'youtube' },
-      { id: this.generateId(), title: 'Twitter', url: 'https://twitter.com', favicon: 'twitter' },
-      { id: this.generateId(), title: 'Reddit', url: 'https://reddit.com', favicon: 'reddit' },
-      { id: this.generateId(), title: 'Wikipedia', url: 'https://wikipedia.org', favicon: 'wikipedia' },
-      { id: this.generateId(), title: 'Amazon', url: 'https://amazon.com', favicon: 'amazon' },
-      { id: this.generateId(), title: 'Netflix', url: 'https://netflix.com', favicon: 'netflix' },
-      { id: this.generateId(), title: 'LinkedIn', url: 'https://linkedin.com', favicon: 'linkedin' },
-      { id: this.generateId(), title: 'Spotify', url: 'https://spotify.com', favicon: 'spotify' },
-      { id: this.generateId(), title: 'Facebook', url: 'https://facebook.com', favicon: 'facebook' },
-      { id: this.generateId(), title: 'Instagram', url: 'https://instagram.com', favicon: 'instagram' }
+      { id: this.generateId(), title: 'Notion', url: 'https://notion.so', faviconUrl: 'https://www.google.com/s2/favicons?domain=notion.so&sz=32' },
+      { id: this.generateId(), title: 'Claude', url: 'https://claude.ai', faviconUrl: 'https://www.google.com/s2/favicons?domain=claude.ai&sz=32' },
+      { id: this.generateId(), title: 'Reddit', url: 'https://reddit.com', faviconUrl: 'https://www.google.com/s2/favicons?domain=reddit.com&sz=32' },
+      { id: this.generateId(), title: 'ChatGPT', url: 'https://chat.openai.com', faviconUrl: 'https://www.google.com/s2/favicons?domain=chat.openai.com&sz=32' },
+      { id: this.generateId(), title: 'Gemini', url: 'https://gemini.google.com', faviconUrl: 'https://www.google.com/s2/favicons?domain=gemini.google.com&sz=32' },
+      { id: this.generateId(), title: 'NYTimes', url: 'https://nytimes.com', faviconUrl: 'https://www.google.com/s2/favicons?domain=nytimes.com&sz=32' },
+      { id: this.generateId(), title: 'It\'s Nice That', url: 'https://itsnicethat.com', faviconUrl: 'https://www.google.com/s2/favicons?domain=itsnicethat.com&sz=32' },
+      { id: this.generateId(), title: 'Perplexity', url: 'https://perplexity.ai', faviconUrl: 'https://www.google.com/s2/favicons?domain=perplexity.ai&sz=32' },
+      { id: this.generateId(), title: 'Medium', url: 'https://medium.com', faviconUrl: 'https://www.google.com/s2/favicons?domain=medium.com&sz=32' },
+      { id: this.generateId(), title: 'Curbed', url: 'https://curbed.com', faviconUrl: 'https://www.google.com/s2/favicons?domain=curbed.com&sz=32' },
+      { id: this.generateId(), title: 'SSENSE', url: 'https://ssense.com', faviconUrl: 'https://www.google.com/s2/favicons?domain=ssense.com&sz=32' },
+      { id: this.generateId(), title: 'Netflix', url: 'https://netflix.com', faviconUrl: 'https://www.google.com/s2/favicons?domain=netflix.com&sz=32' },
+      { id: this.generateId(), title: 'Nike', url: 'https://nike.com', faviconUrl: 'https://www.google.com/s2/favicons?domain=nike.com&sz=32' }
     ];
   },
 
